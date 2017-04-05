@@ -74,27 +74,25 @@ L.CanvasFlowmapLayer = L.Layer.extend({
   onAdd: function(map) {
     var pane = map.getPane(this.options.pane);
 
-    this._canvasTop = L.DomUtil.create('canvas');
+    this._canvasTop = L.DomUtil.create('canvas', 'leaflet-layer');
+    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
+    this._canvasTop.style[originProp] = '50% 50%';
 
     pane.appendChild(this._canvasTop);
 
-    // Calculate initial position of container with `L.Map.latLngToLayerPoint()`, `getPixelOrigin()` and/or `getPixelBounds()`
-    // L.DomUtil.setPosition(this._canvasTop, point);
-
-    // Add and position children elements if needed
-
     map.on('zoomstart', this._clearCanvas, this);
-    map.on('zoomend viewreset', this._update, this);
+    map.on('moveend', this._resetCanvas, this);
     map.on('resize', this._resizeCanvas, this);
 
+    // Calculate initial size and position of canvas
     this._resizeCanvas();
-    this._update();
+    this._resetCanvas();
   },
 
   onRemove: function(map) {
     L.DomUtil.remove(this._canvasTop);
     map.off('zoomstart', this._clearCanvas, this);
-    map.off('zoomend viewreset', this._update, this);
+    map.off('moveend', this._resetCanvas, this);
     map.off('resize', this._resizeCanvas, this);
   },
 
@@ -106,11 +104,17 @@ L.CanvasFlowmapLayer = L.Layer.extend({
     var size = this._map.getSize();
     this._canvasTop.width = size.x;
     this._canvasTop.height = size.y;
-
-    this._update();
   },
 
-  _update: function() {
+  _resetCanvas: function() {
+    var topLeft = this._map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(this._canvasTop, topLeft);
+
+    this._redrawCanvas();
+  },
+
+
+  _redrawCanvas: function() {
     if (this.originAndDestinationPointGeoJSON) {
       this._clearCanvas();
       this._drawAllCanvasPoints();
@@ -148,7 +152,7 @@ L.CanvasFlowmapLayer = L.Layer.extend({
       // convert geometry to screen coordinates for canvas drawing
       // var screenPoint = this._map.toScreen(geometry);
       // var screenPoint = L.CRS.EPSG3857.latLngToPoint(L.latLng(feature.geometry.coordinates), this._map.getZoom());
-      var screenPoint = this._map.latLngToLayerPoint(L.latLng(feature.geometry.coordinates));
+      var screenPoint = this._map.latLngToContainerPoint(L.latLng(feature.geometry.coordinates));
 
       // get the canvas symbol properties
       var symbol = this._getSymbolProperties(feature, canvasCircleProperties);

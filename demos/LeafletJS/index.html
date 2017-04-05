@@ -2,8 +2,10 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Leaflet Night</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="description" content="Canvas Flowmap Layer with LeafletJS.">
+
+  <title>Canvas Flowmap Layer with LeafletJS</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
 
@@ -43,10 +45,16 @@
     var map = L.map('map', {
       // minZoom: 1,
       // maxZoom: 8,
-      worldCopyJump: true
+      // worldCopyJump: true
     }).setView([0, 0], 2);
 
-    L.esri.basemapLayer('Gray').addTo(map);
+    L.esri.basemapLayer('DarkGray').addTo(map);
+
+    // L.tileLayer('http://{s}.sm.mapstack.stamen.com/(watercolor[mask=mapbox-water,bright=40,tint=$002bff@100];watercolor[mask=!mapbox-water,sat=0])/{z}/{x}/{y}.png')
+    //   .addTo(map);
+
+    // L.tileLayer("http://{s}.sm.mapstack.stamen.com/(toner-lite,$fff[difference],$fff[@23],$fff[hsl-saturation@20])/{z}/{x}/{y}.png")
+    //   .addTo(map);
 
     var oneToManyFlowmapLayer;
 
