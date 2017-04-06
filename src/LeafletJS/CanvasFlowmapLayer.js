@@ -1,165 +1,342 @@
-L.CanvasFlowmapLayer = L.Layer.extend({
-  originAndDestinationPointGeoJSON: null,
+var canvasRenderer = L.canvas();
 
-  _originAndDestinationFeatures: [],
-
+L.CanvasFlowmapLayer = L.GeoJSON.extend({
   options: {
-    originAndDestinationFieldIds: null,
-    originCircleProperties: {
-      type: 'simple',
-      symbol: {
-        globalCompositeOperation: 'destination-over',
-        radius: 5,
-        fillStyle: 'rgba(195, 255, 62, 0.60)',
-        lineWidth: 1,
-        strokeStyle: 'rgb(195, 255, 62)',
-        shadowBlur: 0
+    originAndDestinationFieldIds: {
+      originUniqueIdField: 'origin_id',
+      originGeometry: {
+        x: 'origin_lon',
+        y: 'origin_lat'
+      },
+      destinationUniqueIdField: 'destination_id',
+      destinationGeometry: {
+        x: 'destination_lon',
+        y: 'destination_lat'
       }
     },
-    destinationCircleProperties: {
+
+    canvasBezierStyle: {
       type: 'simple',
       symbol: {
-        globalCompositeOperation: 'destination-over',
-        radius: 2.5,
-        fillStyle: 'rgba(17, 142, 170, 0.7)',
-        lineWidth: 0.25,
-        strokeStyle: 'rgb(17, 142, 170)',
-        shadowBlur: 0
+        strokeStyle: 'rgba(255, 0, 51, 0.8)',
+        lineWidth: 0.75,
+        lineCap: 'round',
+        shadowColor: 'rgb(255, 0, 51)',
+        shadowBlur: 1.5
+      }
+    },
+
+    pathDisplayMode: 'all', // valid values: 'selection' or 'all'
+
+    pointToLayer: function(geoJsonPoint, latlng) {
+      return L.circleMarker(latlng);
+    },
+
+    style: function(geoJsonFeature) {
+      if (geoJsonFeature.properties.isOrigin) {
+        return {
+          renderer: canvasRenderer,
+          radius: 5,
+          weight: 1,
+          color: 'rgb(195, 255, 62)',
+          fillColor: 'rgba(195, 255, 62, 0.6)',
+          fillOpacity: 0.6
+        };
+      } else {
+        return {
+          renderer: canvasRenderer,
+          radius: 2.5,
+          weight: 0.25,
+          color: 'rgb(17, 142, 170)',
+          fillColor: 'rgb(17, 142, 170)',
+          fillOpacity: 0.7
+        };
       }
     }
   },
 
-  initialize: function(originAndDestinationPointGeoJSON, options) {
-    this.originAndDestinationPointGeoJSON = originAndDestinationPointGeoJSON;
-
+  initialize: function(geojson, options) {
     L.setOptions(this, options);
 
-    if (this.originAndDestinationPointGeoJSON && this.originAndDestinationPointGeoJSON.features) {
+    this._layers = {};
+
+    if (geojson && this.options.originAndDestinationFieldIds) {
+      this.setOriginAndDestinationGeoJsonPoints(geojson);
+    }
+  },
+
+  setOriginAndDestinationGeoJsonPoints: function(geoJsonFeatureCollection) {
+    if (geoJsonFeatureCollection.features) {
       var configOriginGeometryObject = this.options.originAndDestinationFieldIds.originGeometry;
       var configDestinationGeometryObject = this.options.originAndDestinationFieldIds.destinationGeometry;
 
-      this.originAndDestinationPointGeoJSON.features.forEach(function(feature, index) {
+      geoJsonFeatureCollection.features.forEach(function(feature, index) {
         if (feature.type === 'Feature' && feature.geometry && feature.geometry.type === 'Point') {
-
           // origin feature
-          feature.properties._isOrigin = true;
-          feature.properties._isSelectedForPathDisplay = false;
+          feature.properties.isOrigin = true;
+          feature.properties._isSelectedForPathDisplay = this.options.pathDisplayMode === 'all' ? true : false;
           feature.properties._isSelectedForPathHighlight = false;
-          feature.properties._uniqueId = index + '_o';
+          feature.properties._uniqueId = index + '_origin';
 
           feature.geometry.coordinates = [
-            feature.properties[configOriginGeometryObject.y],
-            feature.properties[configOriginGeometryObject.x]
+            feature.properties[configOriginGeometryObject.x],
+            feature.properties[configOriginGeometryObject.y]
           ];
 
           // destination feature -- clone, modify, and push to feature collection
           var destinationFeature = JSON.parse(JSON.stringify(feature));
 
-          destinationFeature.properties._isOrigin = false;
+          destinationFeature.properties.isOrigin = false;
           destinationFeature.properties._isSelectedForPathDisplay = false;
           destinationFeature.properties._isSelectedForPathHighlight = false;
-          destinationFeature.properties._uniqueId = index + '_d';
+          destinationFeature.properties._uniqueId = index + '_destination';
 
           destinationFeature.geometry.coordinates = [
-            destinationFeature.properties[configDestinationGeometryObject.y],
-            destinationFeature.properties[configDestinationGeometryObject.x]
+            destinationFeature.properties[configDestinationGeometryObject.x],
+            destinationFeature.properties[configDestinationGeometryObject.y]
           ];
 
-          this.originAndDestinationPointGeoJSON.features.push(destinationFeature);
+          geoJsonFeatureCollection.features.push(destinationFeature);
         }
       }, this);
+
+      this.originAndDestinationGeoJsonPoints = geoJsonFeatureCollection;
+      var geoJsonPointsToDraw = this._filterGeoJsonPointsToDraw(geoJsonFeatureCollection);
+      this.addData(geoJsonPointsToDraw);
+    } else {
+      this.originAndDestinationGeoJsonPoints = null;
     }
+
+    return this;
   },
 
-  onAdd: function(map) {
-    var pane = map.getPane(this.options.pane);
+  _filterGeoJsonPointsToDraw: function(geoJsonFeatureCollection) {
+    var newGeoJson = {
+      type: 'FeatureCollection',
+      features: []
+    };
 
-    this._canvasTop = L.DomUtil.create('canvas', 'leaflet-layer');
-    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
-    this._canvasTop.style[originProp] = '50% 50%';
-
-    pane.appendChild(this._canvasTop);
-
-    map.on('zoomstart', this._clearCanvas, this);
-    map.on('moveend', this._resetCanvas, this);
-    map.on('resize', this._resizeCanvas, this);
-
-    // Calculate initial size and position of canvas
-    this._resizeCanvas();
-    this._resetCanvas();
-  },
-
-  onRemove: function(map) {
-    L.DomUtil.remove(this._canvasTop);
-    map.off('zoomstart', this._clearCanvas, this);
-    map.off('moveend', this._resetCanvas, this);
-    map.off('resize', this._resizeCanvas, this);
-  },
-
-  _clearCanvas: function() {
-    this._canvasTop.getContext('2d').clearRect(0, 0, this._canvasTop.width, this._canvasTop.height);
-  },
-
-  _resizeCanvas: function() {
-    var size = this._map.getSize();
-    this._canvasTop.width = size.x;
-    this._canvasTop.height = size.y;
-  },
-
-  _resetCanvas: function() {
-    var topLeft = this._map.containerPointToLayerPoint([0, 0]);
-    L.DomUtil.setPosition(this._canvasTop, topLeft);
-
-    this._redrawCanvas();
-  },
-
-
-  _redrawCanvas: function() {
-    if (this.originAndDestinationPointGeoJSON) {
-      this._clearCanvas();
-      this._drawAllCanvasPoints();
-    }
-  },
-
-  _drawAllCanvasPoints: function() {
-    var ctx = this._canvasTop.getContext('2d');
-
-    // reset temporary tracking arrays to make sure only 1 copy of each origin or destination point gets drawn on the canvas
     var originUniqueIdValues = [];
     var destinationUniqueIdValues = [];
 
     var originUniqueIdField = this.options.originAndDestinationFieldIds.originUniqueIdField;
     var destinationUniqueIdField = this.options.originAndDestinationFieldIds.destinationUniqueIdField;
 
-    this.originAndDestinationPointGeoJSON.features.forEach(function(feature) {
-      var isOrigin = feature.properties._isOrigin;
-      var canvasCircleProperties;
+    geoJsonFeatureCollection.features.forEach(function(feature) {
+      var isOrigin = feature.properties.isOrigin;
 
       if (isOrigin && originUniqueIdValues.indexOf(feature.properties[originUniqueIdField]) === -1) {
         originUniqueIdValues.push(feature.properties[originUniqueIdField]);
-        canvasCircleProperties = feature.properties._isSelectedForHighlight ? this.options.originHighlightCircleProperties : this.options.originCircleProperties;
+        newGeoJson.features.push(feature);
       } else if (!isOrigin && destinationUniqueIdValues.indexOf(feature.properties[destinationUniqueIdField]) === -1) {
         destinationUniqueIdValues.push(feature.properties[destinationUniqueIdField]);
-        canvasCircleProperties = feature.properties._isSelectedForHighlight ? this.options.destinationHighlightCircleProperties : this.options.destinationCircleProperties;
+        newGeoJson.features.push(feature);
       } else {
         // do not attempt to draw an origin or destination circle on the canvas if it is already in one of the tracking arrays
         return;
       }
+    });
 
-      // ensure that canvas features will be drawn beyond +/-180 longitude
-      // var geometry = this._wrapAroundCanvasPointGeometry(feature.geometry);
+    return newGeoJson;
+  },
 
-      // convert geometry to screen coordinates for canvas drawing
-      // var screenPoint = this._map.toScreen(geometry);
-      // var screenPoint = L.CRS.EPSG3857.latLngToPoint(L.latLng(feature.geometry.coordinates), this._map.getZoom());
-      var screenPoint = this._map.latLngToContainerPoint(L.latLng(feature.geometry.coordinates));
+  onAdd: function(map) {
+    L.GeoJSON.prototype.onAdd.call(this, map);
 
-      // get the canvas symbol properties
-      var symbol = this._getSymbolProperties(feature, canvasCircleProperties);
+    // create new canvas element just for manually drawing bezier curves
+    this._canvasElement = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
 
-      // draw a circle point on the canvas
-      this._applyCanvasPointSymbol(ctx, symbol, screenPoint);
+    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
+    this._canvasElement.style[originProp] = '50% 50%';
+
+    var pane = map.getPane(this.options.pane);
+    pane.insertBefore(this._canvasElement, pane.firstChild);
+
+    this.on('click', this._modifyClickEvent, this);
+    map.on('moveend', this._resetCanvas, this);
+    map.on('resize', this._resizeCanvas, this);
+    if (map.options.zoomAnimation && L.Browser.any3d) {
+      map.on('zoomanim', this._animateZoom, this);
+    }
+
+    // calculate initial size and position of canvas
+    // and draw its content for the first time
+    this._resizeCanvas();
+    this._resetCanvas();
+  },
+
+  onRemove: function(map) {
+    L.GeoJSON.prototype.onRemove.call(this, map);
+
+    L.DomUtil.remove(this._canvasElement);
+
+    this.off('click', this._modifyClickEvent, this);
+    map.off('moveend', this._resetCanvas, this);
+    map.off('resize', this._resizeCanvas, this);
+    if (map.options.zoomAnimation) {
+      map.off('zoomanim', this._animateZoom, this);
+    }
+  },
+
+  _modifyClickEvent: function(e) {
+    var odInfo = this._getSharedOriginOrDestinationFeatures(e.layer.feature);
+    e.isOriginFeature = odInfo.isOriginFeature;
+    e.sharedOriginFeatures = odInfo.sharedOriginFeatures;
+    e.sharedDestinationFeatures = odInfo.sharedDestinationFeatures;
+  },
+
+  _getSharedOriginOrDestinationFeatures: function(testFeature) {
+    var isOriginFeature = testFeature.properties.isOrigin;
+    var sharedOriginFeatures = [];
+    var sharedDestinationFeatures = [];
+
+    if (isOriginFeature) {
+      // for an ORIGIN point that was interacted with,
+      // make an array of all other ORIGIN features with the same ORIGIN ID field
+      var originUniqueIdField = this.options.originAndDestinationFieldIds.originUniqueIdField;
+      var testFeatureOriginId = testFeature.properties[originUniqueIdField];
+      sharedOriginFeatures = this.originAndDestinationGeoJsonPoints.features.filter(function(feature) {
+        return feature.properties.isOrigin &&
+          feature.properties[originUniqueIdField] === testFeatureOriginId;
+      });
+    } else {
+      // for a DESTINATION point that was interacted with,
+      // make an array of all other ORIGIN features with the same DESTINATION ID field
+      var destinationUniqueIdField = this.options.originAndDestinationFieldIds.destinationUniqueIdField;
+      var testFeatureDestinationId = testFeature.properties[destinationUniqueIdField];
+      sharedDestinationFeatures = this.originAndDestinationGeoJsonPoints.features.filter(function(feature) {
+        return feature.properties.isOrigin &&
+          feature.properties[destinationUniqueIdField] === testFeatureDestinationId;
+      });
+    }
+
+    return {
+      isOriginFeature: isOriginFeature, // Boolean
+      sharedOriginFeatures: sharedOriginFeatures, // Array of features
+      sharedDestinationFeatures: sharedDestinationFeatures // Array of features
+    };
+  },
+
+  selectFeaturesForPathDisplay: function(selectionFeatures, selectionMode) {
+    this._applyFeaturesSelection(selectionFeatures, selectionMode, '_isSelectedForPathDisplay');
+  },
+
+  _applyFeaturesSelection: function(selectionFeatures, selectionMode, selectionAttributeName) {
+    var selectionIds = selectionFeatures.map(function(feature) {
+      return feature.properties._uniqueId;
+    });
+
+    if (selectionMode === 'SELECTION_NEW') {
+      this.originAndDestinationGeoJsonPoints.features.forEach(function(feature) {
+        if (selectionIds.indexOf(feature.properties._uniqueId) > -1) {
+          feature.properties[selectionAttributeName] = true;
+        } else {
+          feature.properties[selectionAttributeName] = false;
+        }
+      });
+    } else if (selectionMode === 'SELECTION_ADD') {
+      this.originAndDestinationGeoJsonPoints.features.forEach(function(feature) {
+        if (selectionIds.indexOf(feature.properties._uniqueId) > -1) {
+          feature.properties[selectionAttributeName] = true;
+        }
+      });
+    } else if (selectionMode === 'SELECTION_SUBTRACT') {
+      this.originAndDestinationGeoJsonPoints.features.forEach(function(feature) {
+        if (selectionIds.indexOf(feature.properties._uniqueId) > -1) {
+          feature.properties[selectionAttributeName] = false;
+        }
+      });
+    } else {
+      return;
+    }
+
+    this._resetCanvas();
+  },
+
+  _animateZoom: function(e) {
+    // see: https://github.com/Leaflet/Leaflet.heat
+    var scale = this._map.getZoomScale(e.zoom);
+    var offset = this._map._getCenterOffset(e.center)._multiplyBy(-scale).subtract(this._map._getMapPanePos());
+
+    if (L.DomUtil.setTransform) {
+      L.DomUtil.setTransform(this._canvasElement, offset, scale);
+    } else {
+      this._canvasElement.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
+    }
+  },
+
+  // update the canvas size
+  _resizeCanvas: function() {
+    var size = this._map.getSize();
+    this._canvasElement.width = size.x;
+    this._canvasElement.height = size.y;
+  },
+
+  // update the canvas position and redraw its content
+  _resetCanvas: function() {
+    var topLeft = this._map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(this._canvasElement, topLeft);
+    this._redrawCanvas();
+  },
+
+  // draw canvas content
+  _redrawCanvas: function() {
+    if (this.originAndDestinationGeoJsonPoints) {
+      this._clearCanvas();
+      // canvas re-drawing of all the origin/destination point features
+      // loop over each of the "selected" features and re-draw the canvas paths
+      this._drawSelectedCanvasPaths(false);
+    }
+  },
+
+  _clearCanvas: function() {
+    this._canvasElement.getContext('2d')
+      .clearRect(0, 0, this._canvasElement.width, this._canvasElement.height);
+  },
+
+  _drawSelectedCanvasPaths: function(animate) {
+    // var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
+    var ctx = this._canvasElement.getContext('2d');
+    ctx.beginPath();
+
+    var originAndDestinationFieldIds = this.options.originAndDestinationFieldIds;
+
+    this.originAndDestinationGeoJsonPoints.features.forEach(function(feature) {
+
+      if (feature.properties._isSelectedForPathDisplay) {
+        var originXCoordinate = feature.properties[originAndDestinationFieldIds.originGeometry.x];
+        var originYCoordinate = feature.properties[originAndDestinationFieldIds.originGeometry.y];
+        var destinationXCoordinate = feature.properties[originAndDestinationFieldIds.destinationGeometry.x];
+        var destinationYCoordinate = feature.properties[originAndDestinationFieldIds.destinationGeometry.y];
+
+        // origin and destination points for drawing curved lines
+        // ensure that canvas features will be drawn beyond +/-180 longitude
+        // var originPoint = this._wrapAroundCanvasPointGeometry(new Point(originXCoordinate, originYCoordinate, spatialReference));
+        // var destinationPoint = this._wrapAroundCanvasPointGeometry(new Point(destinationXCoordinate, destinationYCoordinate, spatialReference));
+
+        // convert geometry to screen coordinates for canvas drawing
+        var screenOriginPoint = this._map.latLngToContainerPoint(L.latLng([originYCoordinate, originXCoordinate]));
+        var screenDestinationPoint = this._map.latLngToContainerPoint(L.latLng([destinationYCoordinate, destinationXCoordinate]));
+
+        // get the canvas symbol properties,
+        // and draw a curved canvas line
+
+        // var symbol;
+        // if (animate) {
+        //   symbol = this._getSymbolProperties(feature, this.animatePathProperties);
+        //   this._animateCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+        // } else {
+        //   symbol = this._getSymbolProperties(feature, this.pathProperties);
+        //   this._applyCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+        // }
+
+        var symbol = this._getSymbolProperties(feature, this.options.canvasBezierStyle);
+        this._applyCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+      }
     }, this);
+
+    ctx.stroke();
+    ctx.closePath();
   },
 
   _getSymbolProperties: function(feature, canvasSymbolConfig) {
@@ -189,20 +366,17 @@ L.CanvasFlowmapLayer = L.Layer.extend({
     return symbol;
   },
 
-  _applyCanvasPointSymbol: function(ctx, symbolObject, screenPoint) {
-    ctx.globalCompositeOperation = symbolObject.globalCompositeOperation;
-    ctx.fillStyle = symbolObject.fillStyle;
+  _applyCanvasLineSymbol: function(ctx, symbolObject, screenOriginPoint, screenDestinationPoint) {
+    ctx.lineCap = symbolObject.lineCap;
     ctx.lineWidth = symbolObject.lineWidth;
     ctx.strokeStyle = symbolObject.strokeStyle;
     ctx.shadowBlur = symbolObject.shadowBlur;
-    ctx.beginPath();
-    ctx.arc(screenPoint.x, screenPoint.y, symbolObject.radius, 0, 2 * Math.PI, false);
-    ctx.fill();
-    ctx.stroke();
-    ctx.closePath();
+    ctx.shadowColor = symbolObject.shadowColor;
+    ctx.moveTo(screenOriginPoint.x, screenOriginPoint.y);
+    ctx.bezierCurveTo(screenOriginPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y);
   },
 });
 
-L.canvasFlowmapLayer = function(originAndDestinationPointGeoJSON, opts) {
-  return new L.CanvasFlowmapLayer(originAndDestinationPointGeoJSON, opts);
+L.canvasFlowmapLayer = function(originAndDestinationGeoJsonPoints, opts) {
+  return new L.CanvasFlowmapLayer(originAndDestinationGeoJsonPoints, opts);
 };

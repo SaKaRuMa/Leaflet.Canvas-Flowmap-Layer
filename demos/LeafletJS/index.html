@@ -43,14 +43,15 @@
 
   <script>
     var map = L.map('map', {
-      // minZoom: 1,
-      // maxZoom: 8,
       // worldCopyJump: true
     }).setView([0, 0], 2);
 
     L.esri.basemapLayer('DarkGray').addTo(map);
 
-    // L.tileLayer('http://{s}.sm.mapstack.stamen.com/(watercolor[mask=mapbox-water,bright=40,tint=$002bff@100];watercolor[mask=!mapbox-water,sat=0])/{z}/{x}/{y}.png')
+    // L.tileLayer('http://{s}.sm.mapstack.stamen.com/((watercolor,$fff[@40],$002bff[hsl-color],mapbox-water[destination-in]),(watercolor,$fff[hsl-saturation],mapbox-water[destination-out]))/{z}/{x}/{y}.png')
+    //   .addTo(map);
+
+    // L.tileLayer('http://{s}.sm.mapstack.stamen.com/((watercolor,$fff[@40],$002bff[hsl-color],mapbox-water[destination-in]),(watercolor,$000[@40],$fff[hsl-saturation],$ffffff[hsl-color],mapbox-water[destination-out]))/{z}/{x}/{y}.png')
     //   .addTo(map);
 
     // L.tileLayer("http://{s}.sm.mapstack.stamen.com/(toner-lite,$fff[difference],$fff[@23],$fff[hsl-saturation@20])/{z}/{x}/{y}.png")
@@ -91,8 +92,19 @@
               x: 'e_lon',
               y: 'e_lat'
             }
-          }
+          },
+          pathDisplayMode: 'selection'
         }).addTo(map);
+
+        oneToManyFlowmapLayer.on('click', function(e) {
+          if (e.sharedOriginFeatures.length) {
+            oneToManyFlowmapLayer.selectFeaturesForPathDisplay(e.sharedOriginFeatures, 'SELECTION_NEW');
+          }
+          if (e.sharedDestinationFeatures.length) {
+            oneToManyFlowmapLayer.selectFeaturesForPathDisplay(e.sharedDestinationFeatures, 'SELECTION_NEW');
+          }
+        });
+
       }
     });
 
