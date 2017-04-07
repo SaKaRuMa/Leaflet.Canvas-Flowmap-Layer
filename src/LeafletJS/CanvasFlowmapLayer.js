@@ -2,6 +2,8 @@ var canvasRenderer = L.canvas();
 
 L.CanvasFlowmapLayer = L.GeoJSON.extend({
   options: {
+    // this is only a default option example
+    // developers will need to provide this with values unique to their data
     originAndDestinationFieldIds: {
       originUniqueIdField: 'origin_id',
       originGeometry: {
@@ -18,6 +20,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     canvasBezierStyle: {
       type: 'simple',
       symbol: {
+        // use canvas styling options (compare to styling circle markers below)
         strokeStyle: 'rgba(255, 0, 51, 0.8)',
         lineWidth: 0.75,
         lineCap: 'round',
@@ -26,14 +29,20 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
       }
     },
 
-    pathDisplayMode: 'all', // valid values: 'selection' or 'all'
+    // valid values: 'selection' or 'all'
+    // use 'all' to display all Bezier paths immediately
+    // use 'selection' if Bezier paths will be drawn with user interactions
+    pathDisplayMode: 'all',
 
     pointToLayer: function(geoJsonPoint, latlng) {
       return L.circleMarker(latlng);
     },
 
     style: function(geoJsonFeature) {
+      // use leaflet's path styling options
       if (geoJsonFeature.properties.isOrigin) {
+        // developers can rely on the "isOrigin" property to set different symbols
+        // for origin and destination circle markers
         return {
           renderer: canvasRenderer,
           radius: 5,
@@ -60,6 +69,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
     this._layers = {};
 
+    // same as L.GeoJSON intialize method, but first performs custom geojson
+    // data parsing and reformatting before eventually calling addData method
     if (geojson && this.options.originAndDestinationFieldIds) {
       this.setOriginAndDestinationGeoJsonPoints(geojson);
     }
@@ -72,10 +83,9 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
       geoJsonFeatureCollection.features.forEach(function(feature, index) {
         if (feature.type === 'Feature' && feature.geometry && feature.geometry.type === 'Point') {
-          // origin feature
+          // origin feature -- modify attributes and geometry
           feature.properties.isOrigin = true;
           feature.properties._isSelectedForPathDisplay = this.options.pathDisplayMode === 'all' ? true : false;
-          feature.properties._isSelectedForPathHighlight = false;
           feature.properties._uniqueId = index + '_origin';
 
           feature.geometry.coordinates = [
@@ -88,7 +98,6 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
           destinationFeature.properties.isOrigin = false;
           destinationFeature.properties._isSelectedForPathDisplay = false;
-          destinationFeature.properties._isSelectedForPathHighlight = false;
           destinationFeature.properties._uniqueId = index + '_destination';
 
           destinationFeature.geometry.coordinates = [
@@ -100,10 +109,13 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
         }
       }, this);
 
+      // all origin/destination features are available for future internal used
+      // but only a filtered subset of these are drawn on the map
       this.originAndDestinationGeoJsonPoints = geoJsonFeatureCollection;
       var geoJsonPointsToDraw = this._filterGeoJsonPointsToDraw(geoJsonFeatureCollection);
       this.addData(geoJsonPointsToDraw);
     } else {
+      // TODO: improved handling of invalid incoming GeoJson FeatureCollection?
       this.originAndDestinationGeoJsonPoints = null;
     }
 
@@ -141,6 +153,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
   },
 
   onAdd: function(map) {
+    // call the L.GeoJSON onAdd method,
+    // then continue with custom code
     L.GeoJSON.prototype.onAdd.call(this, map);
 
     // create new canvas element just for manually drawing bezier curves
@@ -166,6 +180,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
   },
 
   onRemove: function(map) {
+    // call the L.GeoJSON onRemove method,
+    // then continue with custom code
     L.GeoJSON.prototype.onRemove.call(this, map);
 
     L.DomUtil.remove(this._canvasElement);
@@ -265,25 +281,24 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     }
   },
 
-  // update the canvas size
   _resizeCanvas: function() {
+    // update the canvas size
     var size = this._map.getSize();
     this._canvasElement.width = size.x;
     this._canvasElement.height = size.y;
   },
 
-  // update the canvas position and redraw its content
   _resetCanvas: function() {
+    // update the canvas position and redraw its content
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this._canvasElement, topLeft);
     this._redrawCanvas();
   },
 
-  // draw canvas content
   _redrawCanvas: function() {
+    // draw canvas content
     if (this.originAndDestinationGeoJsonPoints) {
       this._clearCanvas();
-      // canvas re-drawing of all the origin/destination point features
       // loop over each of the "selected" features and re-draw the canvas paths
       this._drawSelectedCanvasPaths(false);
     }
@@ -294,7 +309,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
       .clearRect(0, 0, this._canvasElement.width, this._canvasElement.height);
   },
 
-  _drawSelectedCanvasPaths: function(animate) {
+  _drawSelectedCanvasPaths: function(/*animate*/) {
     // var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
     var ctx = this._canvasElement.getContext('2d');
     ctx.beginPath();
