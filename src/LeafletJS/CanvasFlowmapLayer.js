@@ -34,6 +34,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // use 'selection' if Bezier paths will be drawn with user interactions
     pathDisplayMode: 'all',
 
+    wrapAroundCanvas: true,
+
     pointToLayer: function(geoJsonPoint, latlng) {
       return L.circleMarker(latlng);
     },
@@ -166,8 +168,9 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     var pane = map.getPane(this.options.pane);
     pane.insertBefore(this._canvasElement, pane.firstChild);
 
-    this.on('click', this._modifyClickEvent, this);
-    map.on('moveend', this._resetCanvas, this);
+    this.on('click mouseover', this._modifyInteractionEvent, this);
+    // map.on('moveend', this._resetCanvas, this);
+    map.on('move', this._resetCanvas, this);
     map.on('resize', this._resizeCanvas, this);
     if (map.options.zoomAnimation && L.Browser.any3d) {
       map.on('zoomanim', this._animateZoom, this);
@@ -186,15 +189,16 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
     L.DomUtil.remove(this._canvasElement);
 
-    this.off('click', this._modifyClickEvent, this);
-    map.off('moveend', this._resetCanvas, this);
+    this.off('click mouseover', this._modifyInteractionEvent, this);
+    // map.off('moveend', this._resetCanvas, this);
+    map.off('move', this._resetCanvas, this);
     map.off('resize', this._resizeCanvas, this);
     if (map.options.zoomAnimation) {
       map.off('zoomanim', this._animateZoom, this);
     }
   },
 
-  _modifyClickEvent: function(e) {
+  _modifyInteractionEvent: function(e) {
     var odInfo = this._getSharedOriginOrDestinationFeatures(e.layer.feature);
     e.isOriginFeature = odInfo.isOriginFeature;
     e.sharedOriginFeatures = odInfo.sharedOriginFeatures;
@@ -292,11 +296,22 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // update the canvas position and redraw its content
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this._canvasElement, topLeft);
+    this._wrapGeoJsonCircleMarkers();
     this._redrawCanvas();
   },
 
+  _wrapGeoJsonCircleMarkers: function() {
+    // ensure that the GeoJson point features,
+    // which are drawn on the map as individual CircleMarker layers,
+    // will be drawn beyond +/-180 longitude
+    this.eachLayer(function(layer) {
+      var wrappedLatLng = this._wrapAroundLatLng(layer.getLatLng());
+      layer.setLatLng(wrappedLatLng);
+    }, this);
+  },
+
   _redrawCanvas: function() {
-    // draw canvas content
+    // draw canvas content (only the Bezier curves)
     if (this.originAndDestinationGeoJsonPoints) {
       this._clearCanvas();
       // loop over each of the "selected" features and re-draw the canvas paths
@@ -326,12 +341,12 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
         // origin and destination points for drawing curved lines
         // ensure that canvas features will be drawn beyond +/-180 longitude
-        // var originPoint = this._wrapAroundCanvasPointGeometry(new Point(originXCoordinate, originYCoordinate, spatialReference));
-        // var destinationPoint = this._wrapAroundCanvasPointGeometry(new Point(destinationXCoordinate, destinationYCoordinate, spatialReference));
+        var originLatLng = this._wrapAroundLatLng(L.latLng([originYCoordinate, originXCoordinate]));
+        var destinationLatLng = this._wrapAroundLatLng(L.latLng([destinationYCoordinate, destinationXCoordinate]));
 
         // convert geometry to screen coordinates for canvas drawing
-        var screenOriginPoint = this._map.latLngToContainerPoint(L.latLng([originYCoordinate, originXCoordinate]));
-        var screenDestinationPoint = this._map.latLngToContainerPoint(L.latLng([destinationYCoordinate, destinationXCoordinate]));
+        var screenOriginPoint = this._map.latLngToContainerPoint(originLatLng);
+        var screenDestinationPoint = this._map.latLngToContainerPoint(destinationLatLng);
 
         // get the canvas symbol properties,
         // and draw a curved canvas line
@@ -390,6 +405,20 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     ctx.moveTo(screenOriginPoint.x, screenOriginPoint.y);
     ctx.bezierCurveTo(screenOriginPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y);
   },
+
+  _wrapAroundLatLng: function(latLng) {
+    if (this.options.wrapAroundCanvas) {
+      var wrappedLatLng = latLng.clone();
+      var mapCenterLng = this._map.getCenter().lng;
+      var wrapAroundDiff = mapCenterLng - wrappedLatLng.lng;
+      if (wrapAroundDiff < -180 || wrapAroundDiff > 180) {
+        wrappedLatLng.lng += (Math.round(wrapAroundDiff / 360) * 360);
+      }
+      return wrappedLatLng;
+    } else {
+      return latLng;
+    }
+  }
 });
 
 L.canvasFlowmapLayer = function(originAndDestinationGeoJsonPoints, opts) {
