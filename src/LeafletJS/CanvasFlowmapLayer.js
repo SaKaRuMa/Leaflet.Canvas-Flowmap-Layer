@@ -121,13 +121,13 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
       // initiate the active animation tween
       this._animationTween = new TWEEN.Tween(this._animationPropertiesStatic)
-      .to({
-        offset: this._animationPropertiesStatic.resetOffset
-      }, this._animationPropertiesDynamic.duration)
-      .easing(this._animationPropertiesDynamic.easingInfo.tweenEasingFunction)
-      .repeat(this._animationPropertiesStatic.repeat)
-      .yoyo(this._animationPropertiesStatic.yoyo)
-      .start();
+        .to({
+          offset: this._animationPropertiesStatic.resetOffset
+        }, this._animationPropertiesDynamic.duration)
+        .easing(this._animationPropertiesDynamic.easingInfo.tweenEasingFunction)
+        .repeat(this._animationPropertiesStatic.repeat)
+        .yoyo(this._animationPropertiesStatic.yoyo)
+        .start();
     }
   },
 
