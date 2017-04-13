@@ -169,8 +169,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     pane.insertBefore(this._canvasElement, pane.firstChild);
 
     this.on('click mouseover', this._modifyInteractionEvent, this);
-    // map.on('moveend', this._resetCanvas, this);
     map.on('move', this._resetCanvas, this);
+    map.on('moveend', this._resetCanvasAndWrapGeoJsonCircleMarkers, this);
     map.on('resize', this._resizeCanvas, this);
     if (map.options.zoomAnimation && L.Browser.any3d) {
       map.on('zoomanim', this._animateZoom, this);
@@ -190,8 +190,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     L.DomUtil.remove(this._canvasElement);
 
     this.off('click mouseover', this._modifyInteractionEvent, this);
-    // map.off('moveend', this._resetCanvas, this);
     map.off('move', this._resetCanvas, this);
+    map.off('moveend', this._resetCanvasAndWrapGeoJsonCircleMarkers, this);
     map.off('resize', this._resizeCanvas, this);
     if (map.options.zoomAnimation) {
       map.off('zoomanim', this._animateZoom, this);
@@ -297,8 +297,15 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // update the canvas position and redraw its content
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this._canvasElement, topLeft);
-    this._wrapGeoJsonCircleMarkers();
     this._redrawCanvas();
+  },
+
+  _resetCanvasAndWrapGeoJsonCircleMarkers: function() {
+    this._resetCanvas();
+    // Leaflet will redraw every circle marker when its latLng is changed
+    // sometimes they are drawn 2+ times if this occurs during many "move" events
+    // so for now, only change the circle markers after a "moveend" event
+    this._wrapGeoJsonCircleMarkers();
   },
 
   _wrapGeoJsonCircleMarkers: function() {
@@ -325,7 +332,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
       .clearRect(0, 0, this._canvasElement.width, this._canvasElement.height);
   },
 
-  _drawSelectedCanvasPaths: function(/*animate*/) {
+  _drawSelectedCanvasPaths: function( /*animate*/ ) {
     // var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
     var ctx = this._canvasElement.getContext('2d');
     ctx.beginPath();
