@@ -29,12 +29,33 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
       }
     },
 
+    animateCanvasBezierStyle: {
+      type: 'simple',
+      symbol: {
+        // use canvas styling options (compare to styling circle markers below)
+        strokeStyle: 'rgb(255, 46, 88)',
+        lineWidth: 1.25,
+        lineDashOffsetSize: 4, // custom property used with animation sprite sizes
+        lineCap: 'round',
+        shadowColor: 'rgb(255, 0, 51)',
+        shadowBlur: 2
+      }
+    },
+
     // valid values: 'selection' or 'all'
     // use 'all' to display all Bezier paths immediately
     // use 'selection' if Bezier paths will be drawn with user interactions
     pathDisplayMode: 'all',
 
     wrapAroundCanvas: true,
+
+    animationStarted: false,
+
+    animationEasingFamily: 'Cubic',
+
+    animationEasingType: 'In',
+
+    animationDuration: 2000,
 
     pointToLayer: function(geoJsonPoint, latlng) {
       return L.circleMarker(latlng);
@@ -66,6 +87,18 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     }
   },
 
+  _animationPropertiesStatic: {
+    offset: 0,
+    resetOffset: 200,
+    repeat: Infinity,
+    yoyo: false
+  },
+
+  _animationPropertiesDynamic: {
+    duration: null,
+    easingInfo: null
+  },
+
   initialize: function(geojson, options) {
     L.setOptions(this, options);
 
@@ -75,6 +108,26 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // data parsing and reformatting before eventually calling addData method
     if (geojson && this.options.originAndDestinationFieldIds) {
       this.setOriginAndDestinationGeoJsonPoints(geojson);
+    }
+
+    // establish animation properties using Tween.js library
+    // currently requires the developer to add it to their own app index.html
+    // TODO: find better way to wrap it up in this layer source code
+    if (window.hasOwnProperty('TWEEN')) {
+      // set this._animationPropertiesDynamic.duration value
+      this.setAnimationDuration(this.options.animationDuration);
+      // set this._animationPropertiesDynamic.easingInfo value
+      this.setAnimationEasing(this.options.animationEasingFamily, this.options.animationEasingType);
+
+      // initiate the active animation tween
+      this._animationTween = new TWEEN.Tween(this._animationPropertiesStatic)
+      .to({
+        offset: this._animationPropertiesStatic.resetOffset
+      }, this._animationPropertiesDynamic.duration)
+      .easing(this._animationPropertiesDynamic.easingInfo.tweenEasingFunction)
+      .repeat(this._animationPropertiesStatic.repeat)
+      .yoyo(this._animationPropertiesStatic.yoyo)
+      .start();
     }
   },
 
@@ -168,6 +221,14 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     var pane = map.getPane(this.options.pane);
     pane.insertBefore(this._canvasElement, pane.firstChild);
 
+    this._animationCanvasElement = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+
+    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
+    this._animationCanvasElement.style[originProp] = '50% 50%';
+
+    var pane = map.getPane(this.options.pane);
+    pane.insertBefore(this._animationCanvasElement, pane.firstChild);
+
     this.on('click mouseover', this._modifyInteractionEvent, this);
     map.on('move', this._resetCanvas, this);
     map.on('moveend', this._resetCanvasAndWrapGeoJsonCircleMarkers, this);
@@ -188,6 +249,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     L.GeoJSON.prototype.onRemove.call(this, map);
 
     L.DomUtil.remove(this._canvasElement);
+    L.DomUtil.remove(this._animationCanvasElement);
 
     this.off('click mouseover', this._modifyInteractionEvent, this);
     map.off('move', this._resetCanvas, this);
@@ -196,6 +258,77 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     if (map.options.zoomAnimation) {
       map.off('zoomanim', this._animateZoom, this);
     }
+  },
+
+  setAnimationDuration: function(milliseconds) {
+    milliseconds = Number(milliseconds) || this.options.animationDuration;
+
+    // change the tween duration on the active animation tween
+    if (this._animationTween) {
+      this._animationTween.to({
+        offset: this._animationPropertiesStatic.resetOffset
+      }, milliseconds);
+    }
+
+    this._animationPropertiesDynamic.duration = milliseconds;
+  },
+
+  setAnimationEasing: function(easingFamily, easingType) {
+    var tweenEasingFunction;
+    if (
+      TWEEN.Easing.hasOwnProperty(easingFamily) &&
+      TWEEN.Easing[easingFamily].hasOwnProperty(easingType)
+    ) {
+      tweenEasingFunction = TWEEN.Easing[easingFamily][easingType];
+    } else {
+      easingFamily = this.options.animationEasingFamily;
+      easingType = this.options.animationEasingType;
+      tweenEasingFunction = TWEEN.Easing[easingFamily][easingType];
+    }
+
+    // change the tween easing function on the active animation tween
+    if (this._animationTween) {
+      this._animationTween.easing(tweenEasingFunction);
+    }
+
+    this._animationPropertiesDynamic.easingInfo = {
+      easingFamily: easingFamily,
+      easingType: easingType,
+      tweenEasingFunction: tweenEasingFunction
+    };
+  },
+
+  getAnimationEasingOptions: function(prettyPrint) {
+    var prettyPrint = !!prettyPrint;
+
+    var tweenEasingConsoleOptions = {};
+    var tweenEasingOptions = {};
+
+    Object.keys(TWEEN.Easing).forEach(function(family) {
+      tweenEasingConsoleOptions[family] = {
+        types: Object.keys(TWEEN.Easing[family]).join('", "')
+      };
+
+      tweenEasingOptions[family] = {
+        types: Object.keys(TWEEN.Easing[family])
+      };
+    });
+
+    if (prettyPrint) {
+      console.table(tweenEasingConsoleOptions);
+    }
+
+    return tweenEasingOptions;
+  },
+
+  playAnimation: function() {
+    this.options.animationStarted = true;
+    this._redrawCanvas();
+  },
+
+  stopAnimation: function() {
+    this.options.animationStarted = false;
+    this._redrawCanvas();
   },
 
   _modifyInteractionEvent: function(e) {
@@ -280,8 +413,10 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
     if (L.DomUtil.setTransform) {
       L.DomUtil.setTransform(this._canvasElement, offset, scale);
+      L.DomUtil.setTransform(this._animationCanvasElement, offset, scale);
     } else {
       this._canvasElement.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
+      this._animationCanvasElement.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
     }
   },
 
@@ -290,6 +425,8 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     var size = this._map.getSize();
     this._canvasElement.width = size.x;
     this._canvasElement.height = size.y;
+    this._animationCanvasElement.width = size.x;
+    this._animationCanvasElement.height = size.y;
     this._resetCanvas();
   },
 
@@ -297,6 +434,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // update the canvas position and redraw its content
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this._canvasElement, topLeft);
+    L.DomUtil.setPosition(this._animationCanvasElement, topLeft);
     this._redrawCanvas();
   },
 
@@ -322,19 +460,34 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // draw canvas content (only the Bezier curves)
     if (this.originAndDestinationGeoJsonPoints) {
       this._clearCanvas();
+
       // loop over each of the "selected" features and re-draw the canvas paths
       this._drawSelectedCanvasPaths(false);
+
+      if (this._animationFrameId) {
+        L.Util.cancelAnimFrame(this._animationFrameId);
+      }
+
+      if (this.options.animationStarted) {
+        // start animation loop
+        this._animator();
+      }
     }
   },
 
   _clearCanvas: function() {
     this._canvasElement.getContext('2d')
       .clearRect(0, 0, this._canvasElement.width, this._canvasElement.height);
+    this._animationCanvasElement.getContext('2d')
+      .clearRect(0, 0, this._animationCanvasElement.width, this._animationCanvasElement.height);
+    if (this._animationFrameId) {
+      L.Util.cancelAnimFrame(this._animationFrameId);
+    }
   },
 
-  _drawSelectedCanvasPaths: function( /*animate*/ ) {
-    // var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
-    var ctx = this._canvasElement.getContext('2d');
+  _drawSelectedCanvasPaths: function(animate) {
+    var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
+    // var ctx = this._canvasElement.getContext('2d');
     ctx.beginPath();
 
     var originAndDestinationFieldIds = this.options.originAndDestinationFieldIds;
@@ -358,18 +511,14 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
 
         // get the canvas symbol properties,
         // and draw a curved canvas line
-
-        // var symbol;
-        // if (animate) {
-        //   symbol = this._getSymbolProperties(feature, this.animatePathProperties);
-        //   this._animateCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
-        // } else {
-        //   symbol = this._getSymbolProperties(feature, this.pathProperties);
-        //   this._applyCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
-        // }
-
-        var symbol = this._getSymbolProperties(feature, this.options.canvasBezierStyle);
-        this._applyCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+        var symbol;
+        if (animate) {
+          symbol = this._getSymbolProperties(feature, this.options.animateCanvasBezierStyle);
+          this._animateCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+        } else {
+          symbol = this._getSymbolProperties(feature, this.options.canvasBezierStyle);
+          this._applyCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
+        }
       }
     }, this);
 
@@ -412,6 +561,29 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     ctx.shadowColor = symbolObject.shadowColor;
     ctx.moveTo(screenOriginPoint.x, screenOriginPoint.y);
     ctx.bezierCurveTo(screenOriginPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y);
+  },
+
+  _animateCanvasLineSymbol: function(ctx, symbolObject, screenOriginPoint, screenDestinationPoint) {
+    ctx.lineCap = symbolObject.lineCap;
+    ctx.lineWidth = symbolObject.lineWidth;
+    ctx.strokeStyle = symbolObject.strokeStyle;
+    ctx.shadowBlur = symbolObject.shadowBlur;
+    ctx.shadowColor = symbolObject.shadowColor;
+    ctx.setLineDash([symbolObject.lineDashOffsetSize, (this._animationPropertiesStatic.resetOffset - symbolObject.lineDashOffsetSize)]);
+    ctx.lineDashOffset = -this._animationPropertiesStatic.offset; // this makes the dot appear to move when the entire top canvas is redrawn
+    ctx.moveTo(screenOriginPoint.x, screenOriginPoint.y);
+    ctx.bezierCurveTo(screenOriginPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y, screenDestinationPoint.x, screenDestinationPoint.y);
+  },
+
+  _animator: function(time) {
+    this._animationCanvasElement.getContext('2d')
+      .clearRect(0, 0, this._animationCanvasElement.width, this._animationCanvasElement.height);
+
+    this._drawSelectedCanvasPaths(true); // draw it again to give the appearance of a moving dot with a new lineDashOffset
+
+    TWEEN.update(time);
+
+    this._animationFrameId = L.Util.requestAnimFrame(this._animator, this);
   },
 
   _wrapAroundLatLng: function(latLng) {

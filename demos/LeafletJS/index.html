@@ -32,19 +32,19 @@
 
   <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet-src.js"></script>
 
-  <!-- Load Esri Leaflet from CDN -->
+  <!-- Load Esri Leaflet -->
   <script src="https://unpkg.com/esri-leaflet@2.0.8"></script>
 
-  <!-- Load CanvasFlowMapLayer for LeafletJS -->
+  <!-- first Load animation tweening lib requirement for CanvasFlowMapLayer -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.6.0/Tween.min.js"></script>
+  <!-- then Load CanvasFlowMapLayer -->
   <script src="../../src/LeafletJS/CanvasFlowmapLayer.js"></script>
 
   <!-- load 3rd-party CSV parsing libary  -->
   <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 
   <script>
-    var map = L.map('map', {
-      // worldCopyJump: true
-    }).setView([0, 0], 2);
+    var map = L.map('map').setView([0, 0], 2);
 
     L.esri.basemapLayer('DarkGray').addTo(map);
 
@@ -56,8 +56,6 @@
 
     // L.tileLayer("http://{s}.sm.mapstack.stamen.com/(toner-lite,$fff[difference],$fff[@23],$fff[hsl-saturation@20])/{z}/{x}/{y}.png")
     //   .addTo(map);
-
-    var oneToManyFlowmapLayer;
 
     Papa.parse('../csv-data/Flowmap_Cities_one_to_many.csv', {
       download: true,
@@ -80,7 +78,7 @@
           })
         };
 
-        oneToManyFlowmapLayer = L.canvasFlowmapLayer(geoJSONFeatureCollection, {
+        var oneToManyFlowmapLayer = L.canvasFlowmapLayer(geoJSONFeatureCollection, {
           originAndDestinationFieldIds: {
             originUniqueIdField: 's_city_id',
             originGeometry: {
@@ -93,7 +91,11 @@
               y: 'e_lat'
             }
           },
-          pathDisplayMode: 'selection'
+          pathDisplayMode: 'selection',
+          animationStarted: true,
+          animationEasingFamily: 'Cubic',
+          animationEasingType: 'In',
+          animationDuration: 2000
         }).addTo(map);
 
         oneToManyFlowmapLayer.on('click', function(e) {

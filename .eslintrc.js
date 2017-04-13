@@ -5,7 +5,8 @@ module.exports = {
   "globals": {
     "define": false,
     "require": false,
-    "L": false
+    "L": false,
+    "TWEEN": false
   },
   "rules": {
     "no-debugger": "error",
