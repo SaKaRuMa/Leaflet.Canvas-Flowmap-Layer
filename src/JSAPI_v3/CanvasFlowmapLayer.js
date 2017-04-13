@@ -36,11 +36,12 @@ define([
       PUBLIC and OPTIONAL properties provided by the developer
       */
 
-      // canvas symbol properties are based on Esri REST API simple renderer and unique value renderer specifications
+      // canvas symbol properties are based on Esri REST API renderer object specifications
       // http://resources.arcgis.com/en/help/arcgis-rest-api/#/Renderer_objects/02r30000019t000000/
       // "type" can be:
       //    - simple renderer
       //    - unique values renderer
+      //    - class breaks renderer
       this.originCircleProperties = options.originCircleProperties || {
         type: 'simple',
         symbol: {

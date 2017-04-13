@@ -290,6 +290,7 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     var size = this._map.getSize();
     this._canvasElement.width = size.x;
     this._canvasElement.height = size.y;
+    this._resetCanvas();
   },
 
   _resetCanvas: function() {
