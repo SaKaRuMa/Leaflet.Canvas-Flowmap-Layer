@@ -128,6 +128,10 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
         .repeat(this._animationPropertiesStatic.repeat)
         .yoyo(this._animationPropertiesStatic.yoyo)
         .start();
+    } else {
+      // Tween.js lib isn't available,
+      // ensure that animations aren't attempted
+      this.options.animationStarted = false;
     }
   },
 
@@ -212,23 +216,15 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     // then continue with custom code
     L.GeoJSON.prototype.onAdd.call(this, map);
 
-    // create new canvas element just for manually drawing bezier curves
-    this._canvasElement = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+    // create new canvas element for manually drawing bezier curves
+    this._canvasElement = this._insertCustomCanvasElement(map, this.options);
 
-    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
-    this._canvasElement.style[originProp] = '50% 50%';
+    // create new canvas element for optional, animated bezier curves
+    this._animationCanvasElement = this._insertCustomCanvasElement(map, this.options);
 
-    var pane = map.getPane(this.options.pane);
-    pane.insertBefore(this._canvasElement, pane.firstChild);
+    this._customCanvases = [this._canvasElement, this._animationCanvasElement]
 
-    this._animationCanvasElement = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
-
-    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
-    this._animationCanvasElement.style[originProp] = '50% 50%';
-
-    var pane = map.getPane(this.options.pane);
-    pane.insertBefore(this._animationCanvasElement, pane.firstChild);
-
+    // establish custom event listeners
     this.on('click mouseover', this._modifyInteractionEvent, this);
     map.on('move', this._resetCanvas, this);
     map.on('moveend', this._resetCanvasAndWrapGeoJsonCircleMarkers, this);
@@ -243,14 +239,28 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     this._resetCanvas();
   },
 
+  _insertCustomCanvasElement: function(map, options) {
+    var canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+
+    var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
+    canvas.style[originProp] = '50% 50%';
+
+    var pane = map.getPane(options.pane);
+    pane.insertBefore(canvas, pane.firstChild);
+
+    return canvas;
+  },
+
   onRemove: function(map) {
     // call the L.GeoJSON onRemove method,
     // then continue with custom code
     L.GeoJSON.prototype.onRemove.call(this, map);
 
-    L.DomUtil.remove(this._canvasElement);
-    L.DomUtil.remove(this._animationCanvasElement);
+    this._customCanvases.forEach(function(canvas) {
+      L.DomUtil.remove(canvas);
+    });
 
+    // remove custom event listeners
     this.off('click mouseover', this._modifyInteractionEvent, this);
     map.off('move', this._resetCanvas, this);
     map.off('moveend', this._resetCanvasAndWrapGeoJsonCircleMarkers, this);
@@ -412,29 +422,34 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
     var offset = this._map._getCenterOffset(e.center)._multiplyBy(-scale).subtract(this._map._getMapPanePos());
 
     if (L.DomUtil.setTransform) {
-      L.DomUtil.setTransform(this._canvasElement, offset, scale);
-      L.DomUtil.setTransform(this._animationCanvasElement, offset, scale);
+      this._customCanvases.forEach(function(canvas) {
+        L.DomUtil.setTransform(canvas, offset, scale);
+      });
     } else {
-      this._canvasElement.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
-      this._animationCanvasElement.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
+      this._customCanvases.forEach(function(canvas) {
+        canvas.style[L.DomUtil.TRANSFORM] = L.DomUtil.getTranslateString(offset) + ' scale(' + scale + ')';
+      });
     }
   },
 
   _resizeCanvas: function() {
     // update the canvas size
     var size = this._map.getSize();
-    this._canvasElement.width = size.x;
-    this._canvasElement.height = size.y;
-    this._animationCanvasElement.width = size.x;
-    this._animationCanvasElement.height = size.y;
+    this._customCanvases.forEach(function(canvas) {
+      canvas.width = size.x;
+      canvas.height = size.y;
+    });
+
     this._resetCanvas();
   },
 
   _resetCanvas: function() {
     // update the canvas position and redraw its content
     var topLeft = this._map.containerPointToLayerPoint([0, 0]);
-    L.DomUtil.setPosition(this._canvasElement, topLeft);
-    L.DomUtil.setPosition(this._animationCanvasElement, topLeft);
+    this._customCanvases.forEach(function(canvas) {
+      L.DomUtil.setPosition(canvas, topLeft);
+    });
+
     this._redrawCanvas();
   },
 
@@ -476,18 +491,20 @@ L.CanvasFlowmapLayer = L.GeoJSON.extend({
   },
 
   _clearCanvas: function() {
-    this._canvasElement.getContext('2d')
-      .clearRect(0, 0, this._canvasElement.width, this._canvasElement.height);
-    this._animationCanvasElement.getContext('2d')
-      .clearRect(0, 0, this._animationCanvasElement.width, this._animationCanvasElement.height);
+    this._customCanvases.forEach(function(canvas) {
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    });
+
     if (this._animationFrameId) {
       L.Util.cancelAnimFrame(this._animationFrameId);
     }
   },
 
   _drawSelectedCanvasPaths: function(animate) {
-    var ctx = animate ? this._animationCanvasElement.getContext('2d') : this._canvasElement.getContext('2d');
-    // var ctx = this._canvasElement.getContext('2d');
+    var ctx = animate ?
+      this._animationCanvasElement.getContext('2d') :
+      this._canvasElement.getContext('2d');
+
     ctx.beginPath();
 
     var originAndDestinationFieldIds = this.options.originAndDestinationFieldIds;
