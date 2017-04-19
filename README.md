@@ -2,15 +2,15 @@
 
 The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http://leafletjs.com/) to map the flow of objects from an origin point to a destination point by using a Bezier curve. GeoJSON point feature coordinates are translated to pixel space so that rendering for the points and curves are mapped to an [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement).
 
-**Demos**: Check out the [live demo](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/main).
+**Demos**: Check out the [live demo here](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/demos/main).
 
 **Pro tip**: This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.github.com/sarahbellum/Canvas-Flowmap-Layer), which supports the ArcGIS API for JavaScript. Go there to learn more!
 
-<!-- **Demos**: View the [comparison](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/comparison/) demo and the [main](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/main) demo. -->
+<!-- **Demos**: View the [comparison](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/demos/comparison/) demo and the [main](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/demos/main) demo. -->
 
 **Table of Contents**
 - [Purpose and Background](#purpose-and-background)
-- [Features and Info for Cartographers and Developers](#features-and-info-for-cartographers-and-developers)
+- [Options and More Information for Developers](#options-and-more-information-for-developers)
   - [Data Relationships](#data-relationships)
   - [Animation](#animation)
   - [Interaction](#interaction)
