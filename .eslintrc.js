@@ -4,7 +4,10 @@ module.exports = {
   },
   "globals": {
     "define": false,
-    "require": false
+    "require": false,
+    "module": false,
+    "L": false,
+    "TWEEN": false
   },
   "rules": {
     "no-debugger": "error",
