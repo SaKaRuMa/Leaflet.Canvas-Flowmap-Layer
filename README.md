@@ -21,7 +21,7 @@ The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http
   - [Method Summary](#method-summary)
   - [Event Summary](#event-summary)
 
-![screenshot](https://raw.githubusercontent.com/jwasilgeo/Leaflet.Canvas-Flowmap-Layer/leafletjs/img/img_01.png)
+![screenshot](https://raw.githubusercontent.com/jwasilgeo/Leaflet.Canvas-Flowmap-Layer/master/img/img_01.png)
 
 ## Purpose and Background
 
