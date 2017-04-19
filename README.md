@@ -1,148 +1,200 @@
-# Canvas-Flowmap-Layer
+# Leaflet.Canvas-Flowmap-Layer
 
-The Canvas-Flowmap-Layer extends the ArcGIS API for JavaScript (Esri JSAPI) to map the flow of objects from an origin point to a destination point by using a Bezier curve. Esri graphics are translated to pixel space so that rendering for the points and curves are mapped to an [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement).  
+The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http://leafletjs.com/) to map the flow of objects from an origin point to a destination point by using a Bezier curve. GeoJSON point feature coordinates are translated to pixel space so that rendering for the points and curves are mapped to an [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement).
 
-View the [comparison](https://sarahbellum.github.io/Canvas-Flowmap-Layer/demos/comparison/) demo and the [main](https://sarahbellum.github.io/Canvas-Flowmap-Layer/demos/main) demo.
+**Demos**: Check out the [live demo](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/main).
 
-## Purpose
+**Pro tip**: This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.github.com/sarahbellum/Canvas-Flowmap-Layer), which supports the ArcGIS API for JavaScript. Go there to learn more!
 
-Flow mapping is a cartographic necessity, yet still lacks empirical design rules [(Jenny, et al. 2016)](http://cartography.oregonstate.edu/pdf/2017_Jenny_etal_DesignPrinciplesForODFlowMaps.pdf). Common solutions for dynamic flow mapping include using straight lines and geodesic lines, both of which have immediate visual limitations. Using a Bezier curve for flow map lines, where each curve on the map is created with the same formula benefits mappers twofold:
+<!-- **Demos**: View the [comparison](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/comparison/) demo and the [main](https://jwasilgeo.github.io/Canvas-Flowmap-Layer/demos/main) demo. -->
 
-**1. Aesthetics.** While straight lines are not inherently ugly, an overlapping or convergence of them across a global dataset can be. A series of Bezier curves created with the same formula, even when displaying an over-abundance, has a mathematical congruent flow which greatly improves the map's aesthetics.
+**Table of Contents**
+- [Purpose and Background](#purpose-and-background)
+- [Features and Info for Cartographers and Developers](#features-and-info-for-cartographers-and-developers)
+  - [Data Relationships](#data-relationships)
+  - [Animation](#animation)
+  - [Interaction](#interaction)
+  - [Symbology](#symbology)
+- [API](#api)
+  - [Constructor Summary](#constructor-summary)
+  - [Options and Property Summary](#options-and-property-summary)
+  - [Method Summary](#method-summary)
+  - [Event Summary](#event-summary)
 
-![canvas](https://raw.githubusercontent.com/sarahbellum/Canvas-Flowmap-Layer/master/img/img_01.png)  
+![screenshot](https://raw.githubusercontent.com/jwasilgeo/Leaflet.Canvas-Flowmap-Layer/leafletjs/img/img_01.png)
 
-**2. Directional symbology.** Whether the curve is convex or concave depends on the direction of the line. This symbology might be too new immediately intuit, however this rule is required for aesthetic veracity and consistency. The bonus is that map readers can immediately know the direction of the line without having to add animation.
+## Purpose and Background
 
-![canvas](https://raw.githubusercontent.com/sarahbellum/Canvas-Flowmap-Layer/master/img/img_02.png)
-
-## Line Animation
-
-The convexity or concavity of the curve *does* convey the direction of the flow line, but the directionality won't be easily intuited due to its novelty. In the event that this mapping technique catches like :fire: wildfire :fire:, we can delete the second part of the previous sentence. In the mean time, we've added line animations, similar to the  "ants marching" effect, but with many nice easing effects inspired by both the [tween.js library](https://github.com/tweenjs/tween.js) and this [Kirupa post](https://www.kirupa.com/html5/introduction_to_easing_in_javascript.htm).
-
-The Canvas-Flowmap-Layer uses two separate lines when animation is added, although using two lines is not required to achieve animation. The first line is the solid, static Bezier curve, and the second line is the dotted or hashed *animated* Bezier curve that sits on top of the static line.
-
-![canvas](https://raw.githubusercontent.com/sarahbellum/Canvas-Flowmap-Layer/master/img/lineanimation.gif)
+Please see [sarahbellum/Canvas-Flowmap-Layer#purpose](https://github.com/sarahbellum/Canvas-Flowmap-Layer#purpose) for more detailed information.
 
 ## Options and More Information for Developers
 
 ### Data Relationships
 
-The demo pages provided in this repository show three different types of data relationships that can be used to add lines to the map: one-to-many; many-to-one; one-to-one, where the first part of these relationships indicate the origin ("one" or "many"), and the last part indicates the destination. There are three different csv files used for our demo pages of the Canvas-Flowmap-Layer, one for each data relationship type.
+"One-to-many", "many-to-one" and "one-to-one" origin-to-destination relationships are supported by this custom layer.
 
-##### one-to-many
+**Important**: The developer must format and provide a GeoJSON point feature collection in a specific format. This layer expects that _both_ origin and destination attributes and spatial coordinates are available in each GeoJSON point feature's properties.
 
-In the one-to-many csv file, the *one* or origin exists on several rows - one row for each of its destinations. Each destination in the one-to-many is only listed on one row, which is the same row as its origin. So the number of rows for each origin is determined by the number of destinations it supplies. In the image below, The city of Hechi and San Jose are both origins; Hechi supplies 9 destinations: Sahr, Tandil, Victorville, Cranbourne, Cuirco, Dahuk, Olympia, Oostanay, and Oran.
+Example of a single GeoJSON point feature within a feature collection that includes _both_ origin and destination info:
 
-![canvas](https://raw.githubusercontent.com/sarahbellum/Canvas-Flowmap-Layer/master/img/one-to-many.png)
+```json
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates":[109.6091129, 23.09653465]
+  },
+  "properties": {
+    "origin_city_id": 238,
+    "origin_city": "Hechi",
+    "origin_country": "China",
+    "origin_lon": 109.6091129,
+    "origin_lat": 23.09653465,
+    "destination_city_id": 1,
+    "destination_city": "Sarh",
+    "destination_country": "Chad",
+    "destination_lon": 18.39002966,
+    "destination_lat": 9.149969909,
+  }
+}
+```
 
-##### many-to-one
-
-The many-to-one csv file for this implementation of the Canvas-Flowmap-Layer is similar to the concept of the one-to-many csv file explained above. In the image below, many origin cities supply the one city of Hechi.
-
-![canvas](https://raw.githubusercontent.com/sarahbellum/Canvas-Flowmap-Layer/master/img/many-to-one.png)  
-
-##### one-to-one
-
-In the csv file for the one-to-one data relationship, each origin exists on one row only along with its one destination.
+Please see [sarahbellum/Canvas-Flowmap-Layer#data-relationships](https://github.com/sarahbellum/Canvas-Flowmap-Layer#data-relationships) for more details.
 
 ### Animation
 
 The animations rely on the [tween.js library](https://github.com/tweenjs/tween.js) to assist with changing the underlying line property values as well as providing many different easing functions and durations. See the `setAnimationDuration()` and `setAnimationEasing()` method descriptions below for more information.
 
+**Important**: If animations are going to be used, then the developer must first load the tween.js library.
+
+```html
+<!-- Load animation tweening lib requirement for CanvasFlowMapLayer -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.6.0/Tween.min.js"></script>
+
+<!-- then load CanvasFlowMapLayer -->
+<script src="your/path/to/src/CanvasFlowmapLayer.js"></script>
+```
+
 ### Interaction
 
-You can change how users interact with the `CanvasFlowmapLayer` by controlling which Bezier curves appear and disappear at any time. The demos we provide show how to do this in several ways with JSAPI `click` and `mouse-over` events, coupled with using this layer's `selectGraphicsForPathDisplay` method.
+You can change how users interact with the `Leaflet.CanvasFlowmapLayer` by controlling which Bezier curves appear and disappear at any time. The demos we provide show how to do this in several ways with LeafletJS `click` and `mouseover` events, coupled with using this layer's `selectFeaturesForPathDisplay()` method.
 
-For example, you could listen for a `click` event and then choose to either add to your "selection" of displayed Bezier curves, subtract from your selection, or establish a brand new selection. Alternatively, you can set the `pathDisplayMode` to `'all'` when constructing the layer to display every Bezier curve at once.
+For example, you could listen for a `click` event on an origin point feature—which is displayed on the map as an `L.CircleMarker`—and then choose to either **add** to your selection of displayed Bezier curves, **subtract** from your selection, or establish a brand **new** selection.
+
+Alternatively, you could set the `pathDisplayMode` option to `'all'` when constructing the layer to display every Bezier curve at once.
 
 ### Symbology
 
-The Canvas-Flowmap-Layer has default symbology established for origin points, destination points, Bezier curves, and animated Bezier curves. You can change these defaults using the various symbol configuration objects (e.g. `originCircleProperties`, `destinationCircleProperties`, `pathProperties`, `animatePathProperties`, etc.).
+The `Leaflet.Canvas-Flowmap-Layer` has default symbol styles established for origin and destination point `L.CircleMarker`s, canvas Bezier curves, and animated canvas Bezier curves.
 
-Symbol configurations are defined using property objects inspired by the [ArcGIS REST API renderer objects ](http://resources.arcgis.com/en/help/arcgis-rest-api/#/Renderer_objects/02r30000019t000000/) specification. Simple, unique value, and class breaks are all supported but instead use canvas stroke and line style property names.
+The default symbol styles for origin and destination point `L.CircleMarker`s can be changed by using the layer constructor option `style()` method, since this layer extends from `L.GeoJSON`.
 
-The provided demo pages show some examples of these symbol configuration objects (see config.js files).
+The default symbol styles for canvas Bezier paths and animations can be changed by overriding the layer constructor options for `canvasBezierStyle` and `animatedCanvasBezierStyle`, specifically using HTMLCanvasElement stroke and line style property names (instead of LeafletJS marker style properties). It is also possible to symbolize Bezier paths by unique attribute values or class breaks.
+
+See more details in the developer API section below.
+
+<!-- The provided demo pages show some examples of these symbol configuration objects (see config.js files). -->
 
 ## API
 
-This extends the ArcGIS API for JavaScript (v3.x) [esri/layers/GraphicsLayer](https://developers.arcgis.com/javascript/3/jsapi/graphicslayer-amd.html). All properties, methods, and events provided by the `GraphicsLayer` are available in the `CanvasFlowmapLayer`, with custom features described below.
+This extends the LeafletJS v1 [`L.GeoJSON` layer](http://leafletjs.com/reference-1.0.3.html#geojson). All properties, methods, and events provided by the `L.GeoJSON` layer are available in the `Leaflet.CanvasFlowmapLayer`, with additional custom features described below.
 
 ### Constructor Summary
 
 ```javascript
-// an example of constructing a new layer
-var canvasFlowmapLayer = new CanvasFlowmapLayer({
-  // JSAPI GraphicsLayer constructor properties can be used
-  id: 'myCanvasFlowmapLayer',
-  visible: true,
+var geoJsonFeatureCollection = {
+  // collection of GeoJSON point features
+  // with origin and destination attribute properties
 
-  // CanvasFlowmapLayer custom constructor properties -- see property table below
+  // see discussion above, demos, and CSV example data sources
+};
 
-  // - required property
-  //that informs the layer of your unique origin/destination attributes and geometry
-  originAndDestinationFieldIds: {/* all kinds of important stuff here...see docs below */},
+var exampleFlowmapLayer = L.canvasFlowmapLayer(geoJsonFeatureCollection, {
+  // required property for this custom layer,
+  // which relies on the property names of your own data
+  originAndDestinationFieldIds: {
+    // all kinds of important stuff here...see docs below
 
-  // - some optional properties
+    // however, this isn't required if your own data
+    // is in the same format as the layer source code
+  },
+
+  // some custom options
   pathDisplayMode: 'selection',
   animationStarted: true,
-  animationDuration: 2000,
   animationEasingFamily: 'Cubic',
-  animationEasingType: 'In'
-});
-
-// construct an array of esri/Graphic yourself and add them to the layer
-canvasFlowmapLayer.addGraphics([pointGraphic1, pointGraphic2, ..., pointGraphic100]);
-
-// add the layer to your JSAPI map
-map.addLayer(canvasFlowmapLayer);
+  animationEasingType: 'In',
+  animationDuration: 2000
+}).addTo(map);
 ```
 
-##### Convenience options available in constructor _only_:
+### Options and Property Summary
 
 | Property | Description |
 | --- | --- |
+| `originAndDestinationFieldIds` | **Required if your data does not have the same property field names as the layer source code.** `Object`. This object informs the layer of your unique origin and destination attributes (fields). Both origins and destinations need to have their own unique ID attribute and geometry definition. [See example below](#originanddestinationfieldids-example) which includes minimum required object properties. |
+| `style` | _Optional_. `Function`. This function defines the symbol style properties of the origin and destination `L.CircleMarker`. [See example below](#style-example). |
+| `canvasBezierStyle` | _Optional_. `Object`. This object defines the symbol properties of the non-animated Bezier curve that is drawn on the canvas connecting an origin point to a destination point. [See Symbology discussion above](#symbology). |
+| `animatedCanvasBezierStyle` | _Optional_. `Object`. This defines the symbol properties of the animated Bezier curve that is drawn on the canvas directly on top of the non-animated Bezier curve. [See Symbology discussion above](#symbology). |
+| `pathDisplayMode` | _Optional_. `String`. Valid values: `'selection'` or `'all'`. Defaults to `'all'`. |
+| `wrapAroundCanvas` | _Optional_. `Boolean`. Defaults to `true`. Ensures that canvas features will be drawn beyond +/-180 longitude. |
+| `animationStarted` | _Optional_. `Boolean`. Defaults to `false`. This can be set during construction, but you should use the `playAnimation()` and `stopAnimation()` methods to control animations after layer construction. |
 | `animationDuration` | See `setAnimationDuration()` method description below. |
 | `animationEasingFamily` | See `setAnimationEasing()` method description below. |
 | `animationEasingType` | See `setAnimationEasing()` method description below. |
 
-
-### Property Summary
-
-| Property | Description |
-| --- | --- |
-| `originAndDestinationFieldIds` | **Required**. `Object`. This object informs the layer of your unique origin and destination attributes (fields). Both origins and destinations need to have their own unique ID attribute and geometry definition. [See example below](#originanddestinationfieldids-example) which includes minimum required object properties. |
-| `originCircleProperties` | _Optional_. `Object`. This object defines the symbol properties of the origin point as rendered on the canvas. |
-| `destinationCircleProperties` | _Optional_. `Object`. This object defines the symbol properties of the destination point as rendered on the canvas. |
-| `pathProperties` | _Optional_. `Object`. This object defines the symbol properties of the non-animated Bezier curve that is drawn on the canvas connecting an origin point to a destination point. |
-| `animatePathProperties` | _Optional_. `Object`. This defines the symbol properties of the animated Bezier curve that is drawn on the canvas directly on top of the non-animated Bezier curve. [See Line Animation info above](#line-animation). |
-| `pathDisplayMode` | _Optional_. `String`. Valid values: `'selection'` or `'all'`. Defaults to `'all'`. |
-| `wrapAroundCanvas` | _Optional_. `Boolean`. Defaults to `true`. Ensures that canvas features will be drawn beyond +/-180 longitude. |
-| `animationStarted` | _Optional_. `Boolean`. Defaults to `false`. This can be set during construction, but you should use the `playAnimation` and `stopAnimation` methods to control and change animations after layer construction. |
-| `originHighlightCircleProperties` | _Optional_. `Object`. This object defines the symbol properties of the origin point as rendered on the canvas when highlighted. |
-| `destinationHighlightCircleProperties` | _Optional_. `Object`. This object defines the symbol properties of the destination point as rendered on the canvas when highlighted. |
-
 ##### `originAndDestinationFieldIds` example:
 
+(This is also the default in the layer source code.)
+
 ```javascript
-// you must fill in each of these values for these required properties,
-// using the schema of your own data
-{
-  originUniqueIdField: 'start_id',
+// this is only a default option example,
+// developers will most likely need to provide this
+// options object with values unique to their data
+originAndDestinationFieldIds: {
+  originUniqueIdField: 'origin_id',
   originGeometry: {
-    x: 'start_longitude',
-    y: 'start_latitude',
-    spatialReference: {
-      wkid: 4326
-    }
+    x: 'origin_lon',
+    y: 'origin_lat'
   },
-  destinationUniqueIdField: 'end_id',
+  destinationUniqueIdField: 'destination_id',
   destinationGeometry: {
-    x: 'end_lon',
-    y: 'end_lat',
-    spatialReference: {
-      wkid: 4326
-    }
+    x: 'destination_lon',
+    y: 'destination_lat'
+  }
+}
+```
+
+##### `style` example:
+
+(This is also the default in the layer source code.)
+
+```javascript
+style: function(geoJsonFeature) {
+  // use leaflet's path styling options
+
+  // since the GeoJSON feature properties are modified by the layer,
+  // developers can rely on the "isOrigin" property to set different
+  // symbols for origin vs destination CircleMarker stylings
+
+  if (geoJsonFeature.properties.isOrigin) {
+    return {
+      renderer: canvasRenderer, // recommended to use your own L.canvas()
+      radius: 5,
+      weight: 1,
+      color: 'rgb(195, 255, 62)',
+      fillColor: 'rgba(195, 255, 62, 0.6)',
+      fillOpacity: 0.6
+    };
+  } else {
+    return {
+      renderer: canvasRenderer,
+      radius: 2.5,
+      weight: 0.25,
+      color: 'rgb(17, 142, 170)',
+      fillColor: 'rgb(17, 142, 170)',
+      fillOpacity: 0.7
+    };
   }
 }
 ```
@@ -151,21 +203,18 @@ map.addLayer(canvasFlowmapLayer);
 
 | Method | Arguments | Description |
 | --- | --- | --- |
-| `addGraphics( inputGraphics )` | `inputGraphics`: `Array` of Esri graphics. | This method will prove to be one of your best friends. It is the main "entry point" for adding to the layer the origin-destination graphics you are responsible for creating from your own data source. |
-| `selectGraphicsForPathDisplay( selectionGraphics, selectionMode )`  | `selectionGraphics`: `Array` of Esri graphics that were already added to the layer. <br/> <br/> `selectionMode`: `String`. Valid values: `'SELECTION_NEW'`, `'SELECTION_ADD'`, or `'SELECTION_SUBTRACT'`. | This informs the layer which Bezier curves should be drawn on the map. <br/><br/> For example, you can most easily use this in conjunction with a `click` or `mouse-over` event listener. |
-| `selectGraphicsForPathDisplayById( uniqueOriginOrDestinationIdField, idValue, originBoolean, selectionMode )` |  | This is a convenience method if the unique origin or destination value is already known and you do not wish to rely on a `click` or `mouse-over` event listener. |
+| `selectFeaturesForPathDisplay( selectionFeatures, selectionMode )`  | `selectionFeatures`: `Array` of origin or destination features already managed and displayed by the layer. <br/> <br/> `selectionMode`: `String`. Valid values: `'SELECTION_NEW'`, `'SELECTION_ADD'`, or `'SELECTION_SUBTRACT'`. | This informs the layer which Bezier curves should be drawn on the map. <br/><br/> For example, you can most easily use this in conjunction with a `click` or `mouseover` event listener. |
+| `selectFeaturesForPathDisplayById( uniqueOriginOrDestinationIdField, idValue, originBoolean, selectionMode )` |  | This is a convenience method if the unique origin or destination ID value is already known and you do not wish to rely on a `click` or `mouseover` event listener. |
 | `clearAllPathSelections()` |  | This informs the layer to unselect (and thus hide) all Bezier curves. |
 | `playAnimation()` |  | This starts and shows Bezier curve animations. |
 | `stopAnimation()` |  | This stops and hides any Bezier curve animations. |
 | `setAnimationDuration( duration )` | `duration`: _Optional_. `Number` in milliseconds. | This changes the animation duration. |
-| `setAnimationEasing( easingFamily, easingType )` | `easingFamily`: `String`. <br/><br/> `easingType`: `String`. <br/><br/> See `getAnimationEasingOptions()` method() for info on valid values. | This changes the animation easing function with the help of the [tween.js library](https://github.com/tweenjs/tween.js). |
+| `setAnimationEasing( easingFamily, easingType )` | `easingFamily`: `String`. <br/><br/> `easingType`: `String`. <br/><br/> See `getAnimationEasingOptions()` method for info on valid values. | This changes the animation easing function with the help of the [tween.js library](https://github.com/tweenjs/tween.js). |
 | `getAnimationEasingOptions()` |  | Returns information on valid `easingFamily` and `easingType` values based on the [tween.js library](https://github.com/tweenjs/tween.js). |
-| `selectGraphicsForHighlight( selectionGraphics, selectionMode )` | `selectionGraphics`: `Array` of Esri graphics that were already added to the layer. <br/><br/> `selectionMode`: `String`. Valid values: `'SELECTION_NEW'`, `'SELECTION_ADD'`, or `'SELECTION_SUBTRACT'`. | This informs the layer which origin/destination points should be "highlighted" when drawn on the map, which just applies the highlight symbology instead of the default symbology to the points. <br/><br/> For example, you can most easily use this in conjunction with a `click` or `mouse-over` event listener. |
-| `clearAllHighlightSelections()` |  | This informs the layer to "un-highlight" (and thus remove highlight symbology) all Bezier curves. |
 
 ### Event Summary
 
 | Event | Description |
 | --- | --- |
-| `click` | Extends [GraphicsLayer `click`](https://developers.arcgis.com/javascript/3/jsapi/graphicslayer-amd.html#event-click) and adds the following properties to the event object: <br/><br/> `isOriginGraphic`: `true` if an origin graphic has been clicked, but `false` if a destination graphic has been clicked. <br/><br/> `sharedOriginGraphics`: `Array` of Esri graphics that share the same origin. <br/><br/> `sharedDestinationGraphics`: `Array` of Esri graphics that share the same destination. |
-| `mouse-over` | Extends [GraphicsLayer `mouse-over`](https://developers.arcgis.com/javascript/3/jsapi/graphicslayer-amd.html#event-mouse-over) and adds the following properties to the event object: <br/><br/> `isOriginGraphic`: `true` when the mouse first entered an origin graphic, but `false` when the mouse first entered a destination graphic. <br/><br/> `sharedOriginGraphics`: `Array` of Esri graphics that share the same origin. <br/><br/> `sharedDestinationGraphics`: `Array` of Esri graphics that share the same destination. |
+| `click` | Extends [layer `click`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+| `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |

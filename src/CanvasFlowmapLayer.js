@@ -25,8 +25,9 @@
 
   var CanvasFlowmapLayer = L.GeoJSON.extend({
     options: {
-      // this is only a default option example
-      // developers will need to provide this with values unique to their data
+      // this is only a default option example,
+      // developers will most likely need to provide this
+      // options object with values unique to their data
       originAndDestinationFieldIds: {
         originUniqueIdField: 'origin_id',
         originGeometry: {
@@ -43,7 +44,7 @@
       canvasBezierStyle: {
         type: 'simple',
         symbol: {
-          // use canvas styling options (compare to styling circle markers below)
+          // use canvas styling options (compare to CircleMarker styling below)
           strokeStyle: 'rgba(255, 0, 51, 0.8)',
           lineWidth: 0.75,
           lineCap: 'round',
@@ -52,10 +53,10 @@
         }
       },
 
-      animateCanvasBezierStyle: {
+      animatedCanvasBezierStyle: {
         type: 'simple',
         symbol: {
-          // use canvas styling options (compare to styling circle markers below)
+          // use canvas styling options (compare to CircleMarker styling below)
           strokeStyle: 'rgb(255, 46, 88)',
           lineWidth: 1.25,
           lineDashOffsetSize: 4, // custom property used with animation sprite sizes
@@ -86,11 +87,14 @@
 
       style: function(geoJsonFeature) {
         // use leaflet's path styling options
+
+        // since the GeoJSON feature properties are modified by the layer,
+        // developers can rely on the "isOrigin" property to set different
+        // symbols for origin vs destination CircleMarker stylings
+
         if (geoJsonFeature.properties.isOrigin) {
-          // developers can rely on the "isOrigin" property to set different symbols
-          // for origin and destination circle markers
           return {
-            renderer: canvasRenderer,
+            renderer: canvasRenderer, // recommended to use L.canvas()
             radius: 5,
             weight: 1,
             color: 'rgb(195, 255, 62)',
@@ -122,15 +126,16 @@
       easingInfo: null
     },
 
-    initialize: function(geojson, options) {
+    initialize: function(geoJson, options) {
+      // same as L.GeoJSON intialize method, but first performs custom GeoJSON
+      // data parsing and reformatting before finally calling L.GeoJSON addData method
       L.setOptions(this, options);
 
       this._layers = {};
 
-      // same as L.GeoJSON intialize method, but first performs custom geojson
-      // data parsing and reformatting before eventually calling addData method
-      if (geojson && this.options.originAndDestinationFieldIds) {
-        this.setOriginAndDestinationGeoJsonPoints(geojson);
+      // beginning of customized initialize method
+      if (geoJson && this.options.originAndDestinationFieldIds) {
+        this.setOriginAndDestinationGeoJsonPoints(geoJson);
       }
 
       // establish animation properties using Tween.js library
@@ -153,7 +158,7 @@
           .start();
       } else {
         // Tween.js lib isn't available,
-        // ensure that animations aren't attempted
+        // ensure that animations aren't attempted at the beginning
         this.options.animationStarted = false;
       }
     },
@@ -165,7 +170,7 @@
 
         geoJsonFeatureCollection.features.forEach(function(feature, index) {
           if (feature.type === 'Feature' && feature.geometry && feature.geometry.type === 'Point') {
-            // origin feature -- modify attributes and geometry
+            // origin feature -- modify attribute properties and geometry
             feature.properties.isOrigin = true;
             feature.properties._isSelectedForPathDisplay = this.options.pathDisplayMode === 'all' ? true : false;
             feature.properties._uniqueId = index + '_origin';
@@ -204,36 +209,6 @@
       return this;
     },
 
-    _filterGeoJsonPointsToDraw: function(geoJsonFeatureCollection) {
-      var newGeoJson = {
-        type: 'FeatureCollection',
-        features: []
-      };
-
-      var originUniqueIdValues = [];
-      var destinationUniqueIdValues = [];
-
-      var originUniqueIdField = this.options.originAndDestinationFieldIds.originUniqueIdField;
-      var destinationUniqueIdField = this.options.originAndDestinationFieldIds.destinationUniqueIdField;
-
-      geoJsonFeatureCollection.features.forEach(function(feature) {
-        var isOrigin = feature.properties.isOrigin;
-
-        if (isOrigin && originUniqueIdValues.indexOf(feature.properties[originUniqueIdField]) === -1) {
-          originUniqueIdValues.push(feature.properties[originUniqueIdField]);
-          newGeoJson.features.push(feature);
-        } else if (!isOrigin && destinationUniqueIdValues.indexOf(feature.properties[destinationUniqueIdField]) === -1) {
-          destinationUniqueIdValues.push(feature.properties[destinationUniqueIdField]);
-          newGeoJson.features.push(feature);
-        } else {
-          // do not attempt to draw an origin or destination circle on the canvas if it is already in one of the tracking arrays
-          return;
-        }
-      });
-
-      return newGeoJson;
-    },
-
     onAdd: function(map) {
       // call the L.GeoJSON onAdd method,
       // then continue with custom code
@@ -260,18 +235,6 @@
       // and draw its content for the first time
       this._resizeCanvas();
       this._resetCanvas();
-    },
-
-    _insertCustomCanvasElement: function(map, options) {
-      var canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
-
-      var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
-      canvas.style[originProp] = '50% 50%';
-
-      var pane = map.getPane(options.pane);
-      pane.insertBefore(canvas, pane.firstChild);
-
-      return canvas;
     },
 
     onRemove: function(map) {
@@ -364,6 +327,84 @@
       this._redrawCanvas();
     },
 
+    selectFeaturesForPathDisplay: function(selectionFeatures, selectionMode) {
+      this._applyFeaturesSelection(selectionFeatures, selectionMode, '_isSelectedForPathDisplay');
+    },
+
+    selectFeaturesForPathDisplayById: function(uniqueOriginOrDestinationIdField, idValue, originBoolean, selectionMode) {
+      if (
+        uniqueOriginOrDestinationIdField !== this.options.originAndDestinationFieldIds.originUniqueIdField &&
+        uniqueOriginOrDestinationIdField !== this.options.originAndDestinationFieldIds.destinationUniqueIdField
+      ) {
+        console.error('Invalid unique id field supplied for origin or destination. It must be one of these: ' +
+          this.options.originAndDestinationFieldIds.originUniqueIdField + ', ' + this.options.originAndDestinationFieldIds.destinationUniqueIdField);
+        return;
+      }
+
+      var existingOriginOrDestinationFeature = this.originAndDestinationGeoJsonPoints.features.filter(function(feature) {
+        return feature.properties.isOrigin === originBoolean &&
+          feature.properties[uniqueOriginOrDestinationIdField] === idValue;
+      })[0];
+
+      var odInfo = this._getSharedOriginOrDestinationFeatures(existingOriginOrDestinationFeature);
+
+      if (odInfo.isOriginFeature) {
+        this.selectFeaturesForPathDisplay(odInfo.sharedOriginFeatures, selectionMode);
+      } else {
+        this.selectFeaturesForPathDisplay(odInfo.sharedDestinationFeatures, selectionMode);
+      }
+    },
+
+    clearAllPathSelections: function() {
+      this.originAndDestinationGeoJsonPoints.features.forEach(function(feature) {
+        feature.properties._isSelectedForPathDisplay = false;
+      });
+
+      this._resetCanvas();
+    },
+
+    _filterGeoJsonPointsToDraw: function(geoJsonFeatureCollection) {
+      var newGeoJson = {
+        type: 'FeatureCollection',
+        features: []
+      };
+
+      var originUniqueIdValues = [];
+      var destinationUniqueIdValues = [];
+
+      var originUniqueIdField = this.options.originAndDestinationFieldIds.originUniqueIdField;
+      var destinationUniqueIdField = this.options.originAndDestinationFieldIds.destinationUniqueIdField;
+
+      geoJsonFeatureCollection.features.forEach(function(feature) {
+        var isOrigin = feature.properties.isOrigin;
+
+        if (isOrigin && originUniqueIdValues.indexOf(feature.properties[originUniqueIdField]) === -1) {
+          originUniqueIdValues.push(feature.properties[originUniqueIdField]);
+          newGeoJson.features.push(feature);
+        } else if (!isOrigin && destinationUniqueIdValues.indexOf(feature.properties[destinationUniqueIdField]) === -1) {
+          destinationUniqueIdValues.push(feature.properties[destinationUniqueIdField]);
+          newGeoJson.features.push(feature);
+        } else {
+          // do not attempt to draw an origin or destination circle on the canvas if it is already in one of the tracking arrays
+          return;
+        }
+      });
+
+      return newGeoJson;
+    },
+
+    _insertCustomCanvasElement: function(map, options) {
+      var canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+
+      var originProp = L.DomUtil.testProp(['transformOrigin', 'WebkitTransformOrigin', 'msTransformOrigin']);
+      canvas.style[originProp] = '50% 50%';
+
+      var pane = map.getPane(options.pane);
+      pane.insertBefore(canvas, pane.firstChild);
+
+      return canvas;
+    },
+
     _modifyInteractionEvent: function(e) {
       var odInfo = this._getSharedOriginOrDestinationFeatures(e.layer.feature);
       e.isOriginFeature = odInfo.isOriginFeature;
@@ -401,10 +442,6 @@
         sharedOriginFeatures: sharedOriginFeatures, // Array of features
         sharedDestinationFeatures: sharedDestinationFeatures // Array of features
       };
-    },
-
-    selectFeaturesForPathDisplay: function(selectionFeatures, selectionMode) {
-      this._applyFeaturesSelection(selectionFeatures, selectionMode, '_isSelectedForPathDisplay');
     },
 
     _applyFeaturesSelection: function(selectionFeatures, selectionMode, selectionAttributeName) {
@@ -480,18 +517,8 @@
       this._resetCanvas();
       // Leaflet will redraw every circle marker when its latLng is changed
       // sometimes they are drawn 2+ times if this occurs during many "move" events
-      // so for now, only change the circle markers after a "moveend" event
+      // so for now, only ch CircleMarker styling after a "moveend" event
       this._wrapGeoJsonCircleMarkers();
-    },
-
-    _wrapGeoJsonCircleMarkers: function() {
-      // ensure that the GeoJson point features,
-      // which are drawn on the map as individual CircleMarker layers,
-      // will be drawn beyond +/-180 longitude
-      this.eachLayer(function(layer) {
-        var wrappedLatLng = this._wrapAroundLatLng(layer.getLatLng());
-        layer.setLatLng(wrappedLatLng);
-      }, this);
     },
 
     _redrawCanvas: function() {
@@ -553,7 +580,7 @@
           // and draw a curved canvas line
           var symbol;
           if (animate) {
-            symbol = this._getSymbolProperties(feature, this.options.animateCanvasBezierStyle);
+            symbol = this._getSymbolProperties(feature, this.options.animatedCanvasBezierStyle);
             this._animateCanvasLineSymbol(ctx, symbol, screenOriginPoint, screenDestinationPoint);
           } else {
             symbol = this._getSymbolProperties(feature, this.options.canvasBezierStyle);
@@ -624,6 +651,16 @@
       TWEEN.update(time);
 
       this._animationFrameId = L.Util.requestAnimFrame(this._animator, this);
+    },
+
+    _wrapGeoJsonCircleMarkers: function() {
+      // ensure that the GeoJson point features,
+      // which are drawn on the map as individual CircleMarker layers,
+      // will be drawn beyond +/-180 longitude
+      this.eachLayer(function(layer) {
+        var wrappedLatLng = this._wrapAroundLatLng(layer.getLatLng());
+        layer.setLatLng(wrappedLatLng);
+      }, this);
     },
 
     _wrapAroundLatLng: function(latLng) {
