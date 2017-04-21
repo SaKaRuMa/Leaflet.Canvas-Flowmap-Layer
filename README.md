@@ -20,6 +20,7 @@ The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http
   - [Options and Property Summary](#options-and-property-summary)
   - [Method Summary](#method-summary)
   - [Event Summary](#event-summary)
+- [Licensing](#licensing)
 
 [![screenshot](https://raw.githubusercontent.com/jwasilgeo/Leaflet.Canvas-Flowmap-Layer/master/img/img_01.png)](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/main)
 
@@ -218,3 +219,6 @@ style: function(geoJsonFeature) {
 | --- | --- |
 | `click` | Extends [layer `click`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
 | `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+
+## Licensing
+A copy of the license is available in the repository's [LICENSE](./LICENSE) file.
