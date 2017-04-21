@@ -55,7 +55,7 @@ Example of a single GeoJSON point feature within a feature collection that inclu
     "destination_city": "Sarh",
     "destination_country": "Chad",
     "destination_lon": 18.39002966,
-    "destination_lat": 9.149969909,
+    "destination_lat": 9.149969909
   }
 }
 ```
