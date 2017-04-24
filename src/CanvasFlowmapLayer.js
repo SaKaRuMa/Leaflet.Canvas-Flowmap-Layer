@@ -114,6 +114,8 @@
       }
     },
 
+    _customCanvases: [],
+
     _animationPropertiesStatic: {
       offset: 0,
       resetOffset: 200,
@@ -234,13 +236,15 @@
       // calculate initial size and position of canvas
       // and draw its content for the first time
       this._resizeCanvas();
-      this._resetCanvas();
+      this._resetCanvasAndWrapGeoJsonCircleMarkers();
     },
 
     onRemove: function(map) {
       // call the L.GeoJSON onRemove method,
       // then continue with custom code
       L.GeoJSON.prototype.onRemove.call(this, map);
+
+      this._clearCanvas();
 
       this._customCanvases.forEach(function(canvas) {
         L.DomUtil.remove(canvas);
@@ -515,15 +519,15 @@
 
     _resetCanvasAndWrapGeoJsonCircleMarkers: function() {
       this._resetCanvas();
-      // Leaflet will redraw every circle marker when its latLng is changed
+      // Leaflet will redraw a CircleMarker when its latLng is changed
       // sometimes they are drawn 2+ times if this occurs during many "move" events
-      // so for now, only ch CircleMarker styling after a "moveend" event
+      // so for now, only chang CircleMarker latlng after a single "moveend" event
       this._wrapGeoJsonCircleMarkers();
     },
 
     _redrawCanvas: function() {
       // draw canvas content (only the Bezier curves)
-      if (this.originAndDestinationGeoJsonPoints) {
+      if (this._map && this.originAndDestinationGeoJsonPoints) {
         this._clearCanvas();
 
         // loop over each of the "selected" features and re-draw the canvas paths
@@ -664,7 +668,7 @@
     },
 
     _wrapAroundLatLng: function(latLng) {
-      if (this.options.wrapAroundCanvas) {
+      if (this._map && this.options.wrapAroundCanvas) {
         var wrappedLatLng = latLng.clone();
         var mapCenterLng = this._map.getCenter().lng;
         var wrapAroundDiff = mapCenterLng - wrappedLatLng.lng;
