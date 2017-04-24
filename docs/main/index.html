@@ -47,7 +47,13 @@
   <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 
   <script>
-    var map = L.map('map').setView([0, 0], 2);
+    var map = L.map('map');
+
+    if (L.Browser.mobile) {
+      map.setView([15, -21.95], 2);
+    } else {
+      map.setView([0, 0], 2);
+    }
 
     L.esri.basemapLayer('DarkGray').addTo(map);
 
