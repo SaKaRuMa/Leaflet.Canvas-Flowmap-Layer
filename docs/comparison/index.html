@@ -4,12 +4,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <meta name="description" content="Canvas Flowmap Layer with LeafletJS.">
+  <meta name="description" content="Canvas Flowmap Layer with LeafletJS." />
 
   <title>Canvas Flowmap Layer with LeafletJS</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
-  <link href="https://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,300,600" />
   <link rel="stylesheet" href="css/normalize.css" />
   <link rel="stylesheet" href="css/skeleton.css" />
 
@@ -28,16 +28,6 @@
     }
 
     .control-panel {
-      /*position: absolute;
-      bottom: 0;
-      right: 0;
-      background-color: #f8f8f8;
-      opacity: 0.85;
-      margin-right: 10px;
-      margin-bottom: 10px;
-      z-index: 1000;
-      width: 350px;*/
-
       position: absolute;
       bottom: 0;
       right: 0;
@@ -46,29 +36,56 @@
       margin-bottom: 25px;
       z-index: 1000;
       max-width: 350px;
-      max-height: 460px;
+      max-height: 515px;
       overflow-y: auto;
       border-top: 3px solid #33C3F0;
       border-bottom: 3px solid #33C3F0;
       background-color: #f8f8f8;
     }
 
-
     .control-panel h4 {
       text-align: center;
+      margin-bottom: 1rem;
     }
 
-    @media (max-width: 550px), (max-height: 550px) {
+    .control-panel p {
+      margin-bottom: .5rem;
+    }
+
+    .control-panel input[type=number] {
+      width: 48%;
+    }
+
+    .control-panel label {
+      font-weight: inherit;
+      margin-bottom: 1rem;
+    }
+
+    .control-panel select {
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 550px),
+    (max-height: 550px) {
       .control-panel {
-        max-height: 230px;
-        margin-right: 0; 
+        max-height: 200px;
+        margin-right: 0;
+        margin-bottom: 16px;
       }
       .control-panel h4 {
         font-size: 2.4rem !important;
       }
     }
 
+    @media (max-width: 550px) {
+      .control-panel {
+        max-width: 100%;
+        width: 100%;
+      }
+    }
+
   </style>
+
 </head>
 
 <body>
@@ -77,55 +94,52 @@
 
   <div id="controlPanel" class="control-panel">
 
-    <!-- .container is main centered wrapper -->
     <div class="container" style="width: 100%; padding: 5px 10px;">
-      <!-- <div class="row"> -->
-      <!-- <div class="one-half column"> -->
 
       <h4>Canvas Flowmap Layer</h4>
 
-      <div>
-        <button id="oneToManyLayerButton" class="u-full-width button-primary" value="0">One-to-Many</button>
-        <button id="manyToOneLayerButton" class="u-full-width" value="1">Many-to-One</button>
-        <button id="oneToOneLayerButton" class="u-full-width" value="2">One-to-One</button>
+      <p>
+        Explore <strong>origin-to-destination</strong> layers with different relationships:
+      </p>
+      <button id="oneToManyLayerButton" class="u-full-width button-primary" value="0">One-to-Many</button>
+      <button id="manyToOneLayerButton" class="u-full-width" value="1">Many-to-One</button>
+      <button id="oneToOneLayerButton" class="u-full-width" value="2">One-to-One</button>
+
+      <p>
+        Change animation properties:
+      </p>
+      <div class="row">
+        <div class="six columns">
+          <button id="pathAnimationButton" class="u-full-width">Pause</button>
+        </div>
+        <div class="six columns">
+          <select id="pathAnimationStyleSelect" class="u-full-width"></select>
+        </div>
       </div>
 
       <label>
-            Change animation properties:
-          </label>
+        <input id="pathAnimationDurationInput" type="number" min="500" step="100" max="15000" value="2000" />
+        duration (ms)
+      </label>
 
-      <div>
-        <button id="pathAnimationButton">Pause</button>
-        <select id="pathAnimationStyleSelect"></select>
+      <p>
+        Change user interaction and path selection properties:
+      </p>
+      <div class="row">
+        <div class="six columns">
+          <select id="userInteractionSelect" class="u-full-width">
+            <option value="click" selected>Click</option>
+            <option value="mouseover">Mouseover</option>
+          </select>
+        </div>
+        <div class="six columns">
+          <select id="pathSelectionTypeSelect" class="u-full-width">
+            <option value="SELECTION_NEW" selected>New</option>
+            <option value="SELECTION_ADD">Add</option>
+            <option value="SELECTION_SUBTRACT">Subtract</option>
+          </select>
+        </div>
       </div>
-
-      <div>
-        <label>
-                <input id="pathAnimationDurationInput" type="number" min="100" step="100" value="2000" />
-                duration (ms)
-              </label>
-      </div>
-
-      <label>
-            Change user interaction and path selection properties:
-          </label>
-
-      <div>
-        <select id="userInteractionSelect">
-                <option value="click" selected>Click</option>
-                <option value="mouseover">Mouseover</option>
-              </select>
-
-        <select id="pathSelectionTypeSelect">
-                <option value="SELECTION_NEW" selected>New</option>
-                <option value="SELECTION_ADD">Add</option>
-                <option value="SELECTION_SUBTRACT">Subtract</option>
-              </select>
-      </div>
-
-      <!-- </div> -->
-      <!-- </div> -->
-
 
     </div>
 
@@ -134,6 +148,9 @@
   <!-- first load LeafletJS -->
   <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet-src.js"></script>
 
+  <!-- load Esri Leaflet because we want to use an Esri basemap -->
+  <script src="https://unpkg.com/esri-leaflet@2.0.8"></script>
+
   <!-- Load animation tweening lib requirement for CanvasFlowMapLayer -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.6.0/Tween.min.js"></script>
 
@@ -141,24 +158,12 @@
   <script src="../../src/CanvasFlowmapLayer.js"></script>
 
   <!-- also load 3rd-party CSV parsing libary just for this demo  -->
-  <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
+  <script src="https://unpkg.com/papaparse@4.2.0/papaparse.min.js"></script>
 
   <script>
-    var map = L.map('map').setView([10, 139], 3);
+    var map = L.map('map').setView([7, 139], 3);
 
-    // L.tileLayer('http://{s}.sm.mapstack.stamen.com/((watercolor,$fff[@40],$002bff[hsl-color],mapbox-water[destination-in]),(watercolor,$fff[hsl-saturation],mapbox-water[destination-out]))/{z}/{x}/{y}.png', {
-    //   attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
-    // }).addTo(map);
-
-    // L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
-    //   maxZoom: 18,
-    //   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>'
-    // }).addTo(map);
-
-    // L.tileLayer('https://gibs.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg', {
-    //   maxZoom: 8,
-    //   attribution: 'Imagery provided by services from the Global Imagery Browse Services (GIBS), operated by the NASA/GSFC/Earth Science Data and Information System (<a href="https://earthdata.nasa.gov">ESDIS</a>) with funding provided by NASA/HQ.'
-    // }).addTo(map);
+    L.esri.basemapLayer('DarkGray').addTo(map);
 
     var layersArray = [];
     var currentLayerOnDisplay;
