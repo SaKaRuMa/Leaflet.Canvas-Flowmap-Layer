@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <meta name="description" content="Canvas Flowmap Layer with LeafletJS.">
+  <meta name="description" content="Canvas Flowmap Layer with LeafletJS." />
 
   <title>Canvas Flowmap Layer with LeafletJS</title>
 
@@ -25,6 +25,7 @@
     }
 
   </style>
+
 </head>
 
 <body>
@@ -44,10 +45,16 @@
   <script src="../../src/CanvasFlowmapLayer.js"></script>
 
   <!-- also load 3rd-party CSV parsing libary just for this demo  -->
-  <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
-
+  <script src="https://unpkg.com/papaparse@4.2.0/papaparse.min.js"></script>
+  
   <script>
-    var map = L.map('map').setView([0, 0], 2);
+    var map = L.map('map');
+
+    if (L.Browser.mobile) {
+      map.setView([15, -21.95], 2);
+    } else {
+      map.setView([0, 0], 2);
+    }
 
     L.esri.basemapLayer('DarkGray').addTo(map);
 
@@ -57,7 +64,6 @@
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: function(results) {
-
         var geoJsonFeatureCollection = {
           type: 'FeatureCollection',
           features: results.data.map(function(datum) {
@@ -108,7 +114,6 @@
         // immediately select an origin point for Bezier path display,
         // instead of waiting for the first user click event to fire
         oneToManyFlowmapLayer.selectFeaturesForPathDisplayById('s_city_id', 562, true, 'SELECTION_NEW');
-
       }
     });
 
