@@ -46,7 +46,7 @@
 
   <!-- also load 3rd-party CSV parsing libary just for this demo  -->
   <script src="https://unpkg.com/papaparse@4.3.5/papaparse.min.js"></script>
-  
+
   <script>
     var map = L.map('map');
 
@@ -91,11 +91,52 @@
               y: 'e_lat'
             }
           },
+          canvasBezierStyle: {
+            type: 'classBreaks',
+            field: 's_Volume',
+            classBreakInfos: [{
+              classMinValue: 0,
+              classMaxValue: 999999,
+              symbol: {
+                strokeStyle: '#e7e1ef',
+                lineWidth: 0.5,
+                lineCap: 'round',
+                shadowColor: '#e7e1ef',
+                shadowBlur: 1.5
+              }
+            }, {
+              classMinValue: 1000000,
+              classMaxValue: 4999999,
+              symbol: {
+                strokeStyle: '#c994c7',
+                lineWidth: 1.5,
+                lineCap: 'round',
+                shadowColor: '#c994c7',
+                shadowBlur: 1.5
+              }
+            }, {
+              classMinValue: 5000000,
+              classMaxValue: 10000000,
+              symbol: {
+                strokeStyle: '#dd1c77',
+                lineWidth: 3,
+                lineCap: 'round',
+                shadowColor: '#dd1c77',
+                shadowBlur: 1.5
+              }
+            }],
+            // the layer will use the defaultSymbol if a data value doesn't fit
+            // in any of the defined classBreaks
+            defaultSymbol: {
+              strokeStyle: '#e7e1ef',
+              lineWidth: 0.5,
+              lineCap: 'round',
+              shadowColor: '#e7e1ef',
+              shadowBlur: 1.5
+            },
+          },
           pathDisplayMode: 'selection',
-          animationStarted: true,
-          animationEasingFamily: 'Cubic',
-          animationEasingType: 'In',
-          animationDuration: 2000
+          animationStarted: false
         }).addTo(map);
 
         // since this demo is using the optional "pathDisplayMode" as "selection",
@@ -116,7 +157,6 @@
         oneToManyFlowmapLayer.selectFeaturesForPathDisplayById('s_city_id', 562, true, 'SELECTION_NEW');
       }
     });
-
   </script>
 
 </body>
