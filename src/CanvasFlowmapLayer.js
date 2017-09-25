@@ -116,22 +116,22 @@
 
     _customCanvases: [],
 
-    _animationPropertiesStatic: {
-      offset: 0,
-      resetOffset: 200,
-      repeat: Infinity,
-      yoyo: false
-    },
-
-    _animationPropertiesDynamic: {
-      duration: null,
-      easingInfo: null
-    },
-
     initialize: function(geoJson, options) {
       // same as L.GeoJSON intialize method, but first performs custom GeoJSON
       // data parsing and reformatting before finally calling L.GeoJSON addData method
       L.setOptions(this, options);
+
+      this._animationPropertiesStatic = {
+        offset: 0,
+        resetOffset: 200,
+        repeat: Infinity,
+        yoyo: false
+      };
+
+      this._animationPropertiesDynamic = {
+        duration: null,
+        easingInfo: null
+      };
 
       this._layers = {};
 
