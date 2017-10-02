@@ -3,13 +3,17 @@
 The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http://leafletjs.com/) to map the flow of objects from an origin point to a destination point by using a Bezier curve. GeoJSON point feature coordinates are translated to pixel space so that rendering for the points and curves are mapped to an [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement).
 
 **Demos**
-- [simple](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/main)
-- [feature comparison](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/comparison)
-- [advanced symbology: class breaks of flowlines](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/class-breaks-symbology)
 
-**Pro tip**: This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.github.com/sarahbellum/Canvas-Flowmap-Layer), which supports the ArcGIS API for JavaScript. Go there to learn more! You can read [this blog post announcement](https://cerebellumaps.wordpress.com/2017/04/20/flow-mapping-with-leaflet/).
+- [Simple](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/main)
+- [Feature comparison](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/comparison) (aka: kitchen sink, sandbox)
+- [Advanced symbology: class breaks of flowlines](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/class-breaks-symbology)
+
+**Important!**
+
+This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.github.com/sarahbellum/Canvas-Flowmap-Layer), which was originally written for the ArcGIS API for JavaScript. Go there to learn more! You can also read [this blog post announcement](https://cerebellumaps.wordpress.com/2017/04/20/flow-mapping-with-leaflet/).
 
 **Table of Contents**
+
 - [Purpose and Background](#purpose-and-background)
 - [Options and More Information for Developers](#options-and-more-information-for-developers)
   - [Data Relationships](#data-relationships)
@@ -89,17 +93,15 @@ Alternatively, you could set the `pathDisplayMode` option to `'all'` when constr
 
 The `Leaflet.Canvas-Flowmap-Layer` has default symbol styles established for origin and destination point `L.CircleMarker`s, canvas Bezier curves, and animated canvas Bezier curves.
 
-The default symbol styles for origin and destination point `L.CircleMarker`s can be changed by using the layer constructor option `style()` method, since this layer extends from `L.GeoJSON`.
+The default symbol styles for **origin and destination point** `L.CircleMarker`s can be changed by using the layer constructor option `style()` method, since this layer extends from `L.GeoJSON`.
 
-The default symbol styles for canvas Bezier paths and animations can be changed by overriding the layer constructor options for `canvasBezierStyle` and `animatedCanvasBezierStyle`, specifically using HTMLCanvasElement stroke and line style property names (instead of LeafletJS marker style properties). It is also possible to symbolize Bezier paths by unique attribute values or class breaks.
+The default symbol styles for **canvas Bezier paths and animations** can be changed by overriding the layer constructor options for `canvasBezierStyle` and `animatedCanvasBezierStyle`, specifically using HTMLCanvasElement stroke and line style property names (instead of LeafletJS marker style properties). The caveat here is that this Leaflet version of the Canvas-Flowmap-Layer **and** the [Esri-compatible Canvas-Flowmap-Layer](https://github.com/sarahbellum/Canvas-Flowmap-Layer) both rely on symbol configurations that are defined using property objects inspired by the ArcGIS REST API renderer objects specification. Simple, unique value, and class breaks are all supported but instead use canvas stroke and line style property names. See http://resources.arcgis.com/en/help/arcgis-rest-api/#/Renderer_objects/02r30000019t000000/.
 
-See more details in the developer API section below.
-
-<!-- The provided demo pages show some examples of these symbol configuration objects (see config.js files). -->
+See more details in the developer API section below, and please see [sarahbellum/Canvas-Flowmap-Layer#symbology](https://github.com/sarahbellum/Canvas-Flowmap-Layer#symbology) for more details.
 
 ## API
 
-This extends the LeafletJS v1 [`L.GeoJSON` layer](http://leafletjs.com/reference-1.0.3.html#geojson). All properties, methods, and events provided by the `L.GeoJSON` layer are available in the `Leaflet.CanvasFlowmapLayer`, with additional custom features described below.
+This extends the LeafletJS v1 [`L.GeoJSON` layer](http://leafletjs.com/reference-1.2.0.html#geojson). All properties, methods, and events provided by the `L.GeoJSON` layer are available in the `Leaflet.CanvasFlowmapLayer`, with additional custom features described below.
 
 ### Constructor Summary
 
@@ -218,8 +220,8 @@ style: function(geoJsonFeature) {
 
 | Event | Description |
 | --- | --- |
-| `click` | Extends [layer `click`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
-| `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.0.3.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+| `click` | Extends [layer `click`](http://leafletjs.com/reference-1.2.0.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+| `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.2.0.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
 
 ## Licensing
 A copy of the license is available in the repository's [LICENSE](./LICENSE) file.
