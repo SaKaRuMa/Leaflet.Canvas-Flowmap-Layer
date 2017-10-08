@@ -95,9 +95,11 @@ The `Leaflet.Canvas-Flowmap-Layer` has default symbol styles established for ori
 
 The default symbol styles for **origin and destination point** `L.CircleMarker`s can be changed by using the layer constructor option `style()` method, since this layer extends from `L.GeoJSON`.
 
-The default symbol styles for **canvas Bezier paths and animations** can be changed by overriding the layer constructor options for `canvasBezierStyle` and `animatedCanvasBezierStyle`, specifically using HTMLCanvasElement stroke and line style property names (instead of LeafletJS marker style properties). The caveat here is that this Leaflet version of the Canvas-Flowmap-Layer **and** the [Esri-compatible Canvas-Flowmap-Layer](https://github.com/sarahbellum/Canvas-Flowmap-Layer) both rely on symbol configurations that are defined using property objects inspired by the ArcGIS REST API renderer objects specification. Simple, unique value, and class breaks are all supported but instead use canvas stroke and line style property names. Specifically for this, read about the [ArcGIS REST API renderer objects specification](http://resources.arcgis.com/en/help/arcgis-rest-api/#/Renderer_objects/02r30000019t000000/).
+The default symbol styles for **canvas Bezier paths and animations** can be changed by overriding the layer constructor options for `canvasBezierStyle` and `animatedCanvasBezierStyle`, specifically using HTMLCanvasElement stroke and line style property names (instead of LeafletJS marker style properties).
 
-See the developer API section below and also [sarahbellum/Canvas-Flowmap-Layer#symbology](https://github.com/sarahbellum/Canvas-Flowmap-Layer#symbology) for more details.
+The caveat here is that this Leaflet version of the Canvas-Flowmap-Layer **and** the [Esri-compatible Canvas-Flowmap-Layer](https://github.com/sarahbellum/Canvas-Flowmap-Layer) both rely on symbol configurations that are defined using property objects inspired by the ArcGIS REST API renderer objects specification. Simple, unique value, and class breaks are all supported but instead use canvas stroke and line style property names. Specifically for this, read about the [ArcGIS REST API renderer objects specification](http://resources.arcgis.com/en/help/arcgis-rest-api/#/Renderer_objects/02r30000019t000000/).
+
+See the developer API section below and also [sarahbellum/Canvas-Flowmap-Layer#symbology](https://github.com/sarahbellum/Canvas-Flowmap-Layer#symbology) for more details. We have provided a demo page of how to set class breaks symbology for Bezier curves.
 
 ## API
 

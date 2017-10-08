@@ -7,7 +7,8 @@ module.exports = {
     "require": false,
     "module": false,
     "L": false,
-    "TWEEN": false
+    "TWEEN": false,
+    "Papa": false
   },
   "rules": {
     "no-debugger": "error",

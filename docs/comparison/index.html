@@ -146,19 +146,19 @@
   </div>
 
   <!-- first load LeafletJS -->
-  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet-src.js"></script>
+  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
 
   <!-- load Esri Leaflet because we want to use an Esri basemap -->
-  <script src="https://unpkg.com/esri-leaflet@2.1.0"></script>
+  <script src="https://unpkg.com/esri-leaflet@2.1.1/dist/esri-leaflet.js"></script>
 
-  <!-- Load animation tweening lib requirement for CanvasFlowMapLayer -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/16.6.0/Tween.min.js"></script>
+  <!-- load animation tweening lib requirement for CanvasFlowMapLayer -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/17.1.1/Tween.min.js"></script>
 
   <!-- then load CanvasFlowMapLayer -->
   <script src="../../src/CanvasFlowmapLayer.js"></script>
 
   <!-- also load 3rd-party CSV parsing libary just for this demo  -->
-  <script src="https://unpkg.com/papaparse@4.2.0/papaparse.min.js"></script>
+  <script src="https://unpkg.com/papaparse@4.3.6/papaparse.min.js"></script>
 
   <script>
     var map = L.map('map').setView([7, 139], 3);
@@ -166,7 +166,6 @@
     L.esri.basemapLayer('DarkGray').addTo(map);
 
     var layersArray = [];
-    var currentLayerOnDisplay;
     createCanvasFlowmapLayer('../csv-data/Flowmap_Cities_one_to_many.csv', 0, true);
     createCanvasFlowmapLayer('../csv-data/Flowmap_Cities_many_to_one.csv', 1);
     createCanvasFlowmapLayer('../csv-data/Flowmap_Cities_one_to_one.csv', 2);
@@ -211,7 +210,6 @@
             animationEasingFamily: 'Cubic',
             animationEasingType: 'In',
             animationDuration: 2000,
-
             customLayerId: customLayerId
           });
 
@@ -219,8 +217,6 @@
 
           if (doOneTimeDemoSetup) {
             demoLayer.addTo(map);
-
-            currentLayerOnDisplay = demoLayer;
 
             layerListenerChange({
               target: userInteractionSelect
