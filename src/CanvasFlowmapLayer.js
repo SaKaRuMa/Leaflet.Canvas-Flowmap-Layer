@@ -216,12 +216,16 @@
       // then continue with custom code
       L.GeoJSON.prototype.onAdd.call(this, map);
 
-      // create new canvas element for manually drawing bezier curves
-      this._canvasElement = this._insertCustomCanvasElement(map, this.options);
-
       // create new canvas element for optional, animated bezier curves
       this._animationCanvasElement = this._insertCustomCanvasElement(map, this.options);
 
+      // create new canvas element for manually drawing bezier curves
+      //  - most of the magic happens in this canvas element
+      //  - this canvas element is established last because it will be
+      //    inserted before (underneath) the animation canvas element
+      this._canvasElement = this._insertCustomCanvasElement(map, this.options);
+
+      // create a reference to both canvas elements in an array for convenience
       this._customCanvases = [this._canvasElement, this._animationCanvasElement]
 
       // establish custom event listeners
@@ -237,6 +241,8 @@
       // and draw its content for the first time
       this._resizeCanvas();
       this._resetCanvasAndWrapGeoJsonCircleMarkers();
+
+      return this;
     },
 
     onRemove: function(map) {
@@ -258,6 +264,34 @@
       if (map.options.zoomAnimation) {
         map.off('zoomanim', this._animateZoom, this);
       }
+
+      return this;
+    },
+
+    bringToBack: function() {
+      // call the L.GeoJSON bringToBack method to manage the point graphics    
+      L.GeoJSON.prototype.bringToBack.call(this);
+
+      // keep the animation canvas element on top of the main canvas element
+      L.DomUtil.toBack(this._animationCanvasElement);
+
+      // keep the main canvas element underneath the animation canvas element
+      L.DomUtil.toBack(this._canvasElement);
+
+      return this;
+    },
+
+    bringToFront: function() {      
+      // keep the main canvas element underneath the animation canvas element
+      L.DomUtil.toFront(this._canvasElement);
+      
+      // keep the animation canvas element on top of the main canvas element
+      L.DomUtil.toFront(this._animationCanvasElement);
+
+      // call the L.GeoJSON bringToFront method to manage the point graphics
+      L.GeoJSON.prototype.bringToFront.call(this);
+
+      return this;
     },
 
     setAnimationDuration: function(milliseconds) {
