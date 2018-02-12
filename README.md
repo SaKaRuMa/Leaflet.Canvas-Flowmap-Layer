@@ -158,12 +158,12 @@ var exampleFlowmapLayer = L.canvasFlowmapLayer(geoJsonFeatureCollection, {
 // developers will most likely need to provide this
 // options object with values unique to their data
 originAndDestinationFieldIds: {
-  originUniqueIdField: 'origin_id',
+  originUniqueIdField: 'origin_city_id',
   originGeometry: {
     x: 'origin_lon',
     y: 'origin_lat'
   },
-  destinationUniqueIdField: 'destination_id',
+  destinationUniqueIdField: 'destination_city_id',
   destinationGeometry: {
     x: 'destination_lon',
     y: 'destination_lat'
