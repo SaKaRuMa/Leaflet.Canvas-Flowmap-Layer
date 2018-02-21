@@ -12,6 +12,8 @@ The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http
 
 This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.github.com/sarahbellum/Canvas-Flowmap-Layer), which was originally written for the ArcGIS API for JavaScript. Go there to learn more! You can also read [this blog post announcement](https://cerebellumaps.wordpress.com/2017/04/20/flow-mapping-with-leaflet/).
 
+View our [**presentation at NACIS 2017**](https://www.youtube.com/watch?v=cRPx-BfBtv0).
+
 **Table of Contents**
 
 - [Purpose and Background](#purpose-and-background)
