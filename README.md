@@ -53,12 +53,12 @@ Example of a single GeoJSON point feature within a feature collection that inclu
     "coordinates":[109.6091129, 23.09653465]
   },
   "properties": {
-    "origin_city_id": 238,
+    "origin_id": 238,
     "origin_city": "Hechi",
     "origin_country": "China",
     "origin_lon": 109.6091129,
     "origin_lat": 23.09653465,
-    "destination_city_id": 1,
+    "destination_id": 1,
     "destination_city": "Sarh",
     "destination_country": "Chad",
     "destination_lon": 18.39002966,
