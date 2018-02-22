@@ -2,7 +2,7 @@
 
 The `Leaflet.Canvas-Flowmap-Layer` is a custom layer plugin for [LeafletJS](http://leafletjs.com/) to map the flow of objects from an origin point to a destination point by using a Bezier curve. GeoJSON point feature coordinates are translated to pixel space so that rendering for the points and curves are mapped to an [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement).
 
-**Demos**
+**Demos:**
 
 - [Simple](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/main)
 - [Feature comparison](https://jwasilgeo.github.io/Leaflet.Canvas-Flowmap-Layer/docs/comparison) (aka: kitchen sink, sandbox)
@@ -14,7 +14,7 @@ This is a LeafletJS port of [sarahbellum/Canvas-Flowmap-Layer](https://www.githu
 
 View our [**presentation at NACIS 2017**](https://www.youtube.com/watch?v=cRPx-BfBtv0).
 
-**Table of Contents**
+**Table of Contents:**
 
 - [Purpose and Background](#purpose-and-background)
 - [Options and More Information for Developers](#options-and-more-information-for-developers)
@@ -41,7 +41,7 @@ Please see [sarahbellum/Canvas-Flowmap-Layer#purpose](https://github.com/sarahbe
 
 "One-to-many", "many-to-one" and "one-to-one" origin-to-destination relationships are supported by this custom layer.
 
-**Important**: The developer must format and provide a GeoJSON point feature collection in a specific format. This layer expects that _both_ origin and destination attributes and spatial coordinates are available in each GeoJSON point feature's properties.
+**Important:** The developer must format and provide a GeoJSON point feature collection in a specific format. This layer expects that _both_ origin and destination attributes and spatial coordinates are available in each GeoJSON point feature's properties.
 
 Example of a single GeoJSON point feature within a feature collection that includes _both_ origin and destination info:
 
@@ -73,7 +73,7 @@ Please see [sarahbellum/Canvas-Flowmap-Layer#data-relationships](https://github.
 
 The animations rely on the [tween.js library](https://github.com/tweenjs/tween.js) to assist with changing the underlying line property values as well as providing many different easing functions and durations. See the `setAnimationDuration()` and `setAnimationEasing()` method descriptions below for more information.
 
-**Important**: If animations are going to be used, then the developer must first load the tween.js library.
+**Important:** If animations are going to be used, then the developer must first load the tween.js library.
 
 ```html
 <!-- Load animation tweening lib requirement for CanvasFlowMapLayer -->
@@ -105,7 +105,7 @@ See the developer API section below and also [sarahbellum/Canvas-Flowmap-Layer#s
 
 ## API
 
-This extends the LeafletJS v1 [`L.GeoJSON` layer](http://leafletjs.com/reference-1.2.0.html#geojson). All properties, methods, and events provided by the `L.GeoJSON` layer are available in the `Leaflet.CanvasFlowmapLayer`, with additional custom features described below.
+This extends the LeafletJS v1 [`L.GeoJSON` layer](http://leafletjs.com/reference-1.3.0.html#geojson). All properties, methods, and events provided by the `L.GeoJSON` layer are available in the `Leaflet.CanvasFlowmapLayer`, with additional custom features described below.
 
 ### Constructor Summary
 
@@ -151,7 +151,7 @@ var exampleFlowmapLayer = L.canvasFlowmapLayer(geoJsonFeatureCollection, {
 | `animationEasingFamily` | See `setAnimationEasing()` method description below. |
 | `animationEasingType` | See `setAnimationEasing()` method description below. |
 
-##### `originAndDestinationFieldIds` example:
+**`originAndDestinationFieldIds` example:**
 
 (This is also the default in the layer source code.)
 
@@ -173,7 +173,7 @@ originAndDestinationFieldIds: {
 }
 ```
 
-##### `style` example:
+**`style` example:**
 
 (This is also the default in the layer source code.)
 
@@ -224,8 +224,9 @@ style: function(geoJsonFeature) {
 
 | Event | Description |
 | --- | --- |
-| `click` | Extends [layer `click`](http://leafletjs.com/reference-1.2.0.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
-| `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.2.0.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+| `click` | Extends [layer `click`](http://leafletjs.com/reference-1.3.0.html#interactive-layer-click) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` if an origin point has been clicked, but `false` if a destination point has been clicked. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
+| `mouseover` | Extends [layer `mouseover`](http://leafletjs.com/reference-1.3.0.html#interactive-layer-mouseover) and adds the following properties to the event object: <br/><br/> `isOriginFeature`: `true` when the mouse first entered an origin point, but `false` when the mouse first entered a destination point. <br/><br/> `sharedOriginFeatures`: `Array` of features that share the same origin. <br/><br/> `sharedDestinationFeatures`: `Array` of features that share the same destination. |
 
 ## Licensing
+
 A copy of the license is available in the repository's [LICENSE](./LICENSE) file.
