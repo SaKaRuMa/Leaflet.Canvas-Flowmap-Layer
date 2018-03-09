@@ -281,10 +281,10 @@
       return this;
     },
 
-    bringToFront: function() {      
+    bringToFront: function() {
       // keep the main canvas element underneath the animation canvas element
       L.DomUtil.toFront(this._canvasElement);
-      
+
       // keep the animation canvas element on top of the main canvas element
       L.DomUtil.toFront(this._animationCanvasElement);
 
@@ -569,8 +569,14 @@
           L.Util.cancelAnimFrame(this._animationFrameId);
         }
 
-        if (this.options.animationStarted) {
-          // start animation loop
+        if (
+          this.options.animationStarted &&
+          this.originAndDestinationGeoJsonPoints.features.some(function(feature) {
+            return feature.properties._isSelectedForPathDisplay;
+          })
+        ) {
+          // start animation loop if the layer is currently set for showing animations,
+          // and if there is at least 1 feature selected for displaying paths
           this._animator();
         }
       }
